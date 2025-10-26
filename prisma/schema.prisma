@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  telegramId     Int       @unique
+  username       String?
+  firstName      String?
+  lastName       String?
+  languageCode   String?
+  isBot          Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  coins          Float       @default(0)
+  level          Int       @default(1)
+  miningStarted  DateTime?
+  miningRate     Float @default(0.01)
+
+  referredById   Int?
+  referredBy     User?     @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals      User[]    @relation("UserReferrals")
+
+  lastMiningTick DateTime?
+
+  tempCoins      Float       @default(0)
+  vaultCapacity  Float       @default(120)      
+}
+
+
+
+
+
+
