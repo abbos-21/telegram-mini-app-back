@@ -17,6 +17,37 @@ router.post("/mine", async (req, res) => {
 
   const now = new Date();
 
+  if (user.health <= 0) {
+    if (user.tempCoins > 0) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { tempCoins: 0, miningStarted: null, lastMiningTick: null },
+      });
+    }
+    return res.json({
+      success: false,
+      message:
+        "Your health reached 0! All mined coins are lost and mining stopped.",
+      data: {
+        ...user,
+      },
+    });
+  }
+
+  if (user.energy <= 0) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { miningStarted: null, lastMiningTick: null },
+    });
+    return res.json({
+      success: false,
+      message: "Your energy is 0! Mining stopped. Please recharge energy.",
+      data: {
+        ...user,
+      },
+    });
+  }
+
   if (!user.miningStarted) {
     await prisma.user.update({
       where: { id: user.id },
@@ -51,9 +82,7 @@ router.post("/mine", async (req, res) => {
   if (tempCoins >= maxCapacity) {
     await prisma.user.update({
       where: { id: user.id },
-      data: {
-        lastMiningTick: now,
-      },
+      data: { lastMiningTick: now },
     });
     return res.json({
       success: true,
@@ -65,29 +94,60 @@ router.post("/mine", async (req, res) => {
     });
   }
 
-  const userMiningRate = user.miningRate;
-
-  const potentialMined = elapsedSeconds * userMiningRate;
-
-  const mined = Math.min(potentialMined, maxCapacity - tempCoins);
+  const mined = Math.min(
+    elapsedSeconds * user.miningRate,
+    maxCapacity - tempCoins
+  );
   tempCoins += mined;
+
+  const energyLoss = elapsedSeconds / 60;
+  const healthLoss = elapsedSeconds / 90;
+
+  let newEnergy = Math.max(0, user.energy - energyLoss);
+  let newHealth = Math.max(0, user.health - healthLoss);
+
+  let miningStopped = false;
+  let burnedCoins = false;
+
+  // If health hits 0 → burn coins and stop mining
+  if (newHealth <= 0) {
+    tempCoins = 0;
+    miningStopped = true;
+    burnedCoins = true;
+  }
+
+  // If energy hits 0 → stop mining
+  if (newEnergy <= 0) {
+    miningStopped = true;
+  }
 
   const updatedUser = await prisma.user.update({
     where: { id: user.id },
     data: {
       tempCoins,
       lastMiningTick: now,
+      energy: newEnergy,
+      health: newHealth,
+      ...(miningStopped ? { miningStarted: null } : {}),
     },
   });
 
-  // let counter = 0;
+  if (burnedCoins) {
+    return res.json({
+      success: false,
+      message:
+        "Health dropped to 0! Your mined coins were lost and mining stopped.",
+      data: updatedUser,
+    });
+  }
 
-  // setInterval(() => {
-  //   counter += 3;
-
-  //   emitTempCoinsUpdate(updatedUser.id, counter);
-  // }, 1000);
-  // emitTempCoinsUpdate(updatedUser.id, updatedUser.tempCoins);
+  if (miningStopped) {
+    return res.json({
+      success: false,
+      message: "Energy depleted! Mining stopped.",
+      data: updatedUser,
+    });
+  }
 
   return res.json({
     success: true,
@@ -95,7 +155,9 @@ router.post("/mine", async (req, res) => {
       ...updatedUser,
       mined,
       vaultFull: tempCoins >= maxCapacity,
-      message: `Mined ${mined.toFixed(4)} new coins.`,
+      message: `Mined ${mined.toFixed(4)} coins. Energy: ${newEnergy.toFixed(
+        1
+      )}, Health: ${newHealth.toFixed(1)}`,
     },
   });
 });

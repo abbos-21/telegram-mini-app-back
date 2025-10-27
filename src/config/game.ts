@@ -1,4 +1,4 @@
-export const MINING_RATE = 0.01;
+export const MINING_RATE = 2;
 export const LEVEL_THRESHOLDS = [
   0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500, 5500, 6600, 7800, 9100,
   10500,

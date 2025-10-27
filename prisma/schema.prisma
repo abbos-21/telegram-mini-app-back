@@ -19,10 +19,10 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  coins          Float       @default(0)
+  coins          Float     @default(0)
   level          Int       @default(1)
   miningStarted  DateTime?
-  miningRate     Float @default(0.01)
+  miningRate     Float     @default(0.01)
 
   referredById   Int?
   referredBy     User?     @relation("UserReferrals", fields: [referredById], references: [id])
@@ -30,9 +30,16 @@ model User {
 
   lastMiningTick DateTime?
 
-  tempCoins      Float       @default(0)
-  vaultCapacity  Float       @default(120)      
+  tempCoins      Float     @default(0)
+  vaultCapacity  Float     @default(60)
+
+  // 🆕 New fields
+  health         Float     @default(60) // in minutes
+  healthMax      Float     @default(60)
+  energy         Float     @default(60) // in minutes
+  energyMax      Float     @default(60)
 }
+
 
 
 
