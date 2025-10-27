@@ -2,7 +2,7 @@ import { Socket } from "socket.io";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import prisma from "../prisma";
 import { JWT_SECRET } from "../config/env";
-import { User } from "../../generated/prisma/client";
+import type { User } from "../generated/prisma/client";
 
 interface AuthTokenPayload extends JwtPayload {
   id: number;
