@@ -1,7 +1,11 @@
 import express from "express";
 import prisma from "../prisma";
 import { authMiddleware } from "../middleware/authMiddleware";
-import { LEVEL_THRESHOLDS, REFERRAL_REWARDS } from "../config/game";
+import {
+  LEVEL_THRESHOLDS,
+  MINING_RATE,
+  REFERRAL_REWARDS,
+} from "../config/game";
 // import { emitTempCoinsUpdate } from "..";
 
 const router = express.Router();
@@ -94,10 +98,7 @@ router.post("/mine", async (req, res) => {
     });
   }
 
-  const mined = Math.min(
-    elapsedSeconds * user.miningRate,
-    maxCapacity - tempCoins
-  );
+  const mined = Math.min(elapsedSeconds * MINING_RATE, maxCapacity - tempCoins);
   tempCoins += mined;
 
   const energyLoss = elapsedSeconds / 60;
