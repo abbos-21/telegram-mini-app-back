@@ -33,10 +33,10 @@ router.post("/", async (req, res) => {
     };
 
     const dbUser = await prisma.user.upsert({
-      where: { telegramId: user.id },
+      where: { telegramId: String(user.id) },
       update: updateFields,
       create: {
-        telegramId: user.id,
+        telegramId: String(user.id),
         ...updateFields,
         ...(referrer && { referredById: referrer.id }),
       },
