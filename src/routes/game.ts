@@ -98,11 +98,31 @@ router.post("/mine", async (req, res) => {
     });
   }
 
-  const mined = Math.min(elapsedSeconds * MINING_RATE, maxCapacity - tempCoins);
+  const potentialMined = elapsedSeconds * MINING_RATE;
+  const mined = Math.min(potentialMined, maxCapacity - tempCoins);
+
+  // If nothing mined, skip energy/health loss
+  if (mined <= 0) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastMiningTick: now },
+    });
+    return res.json({
+      success: true,
+      data: {
+        ...user,
+        vaultFull: true,
+        message:
+          "Vault is full! No mining progress — energy and health not consumed.",
+      },
+    });
+  }
+
   tempCoins += mined;
 
-  const energyLoss = elapsedSeconds / 60;
-  const healthLoss = elapsedSeconds / 90;
+  // 🧮 Only consume if mining occurred
+  const energyLoss = elapsedSeconds / 60; // 30 energy per minute
+  const healthLoss = elapsedSeconds / 90; // slower health drain
 
   let newEnergy = Math.max(0, user.energy - energyLoss);
   let newHealth = Math.max(0, user.health - healthLoss);
