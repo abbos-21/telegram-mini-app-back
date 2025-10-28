@@ -18,7 +18,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const refId = ref ? Number(ref) : undefined;
+    const refId = ref;
 
     const referrer = refId
       ? await prisma.user.findUnique({ where: { telegramId: refId } })
@@ -33,10 +33,10 @@ router.post("/", async (req, res) => {
     };
 
     const dbUser = await prisma.user.upsert({
-      where: { telegramId: Number(user.id) },
+      where: { telegramId: user.id },
       update: updateFields,
       create: {
-        telegramId: Number(user.id),
+        telegramId: user.id,
         ...updateFields,
         ...(referrer && { referredById: referrer.id }),
       },
