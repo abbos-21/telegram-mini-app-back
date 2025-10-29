@@ -20,7 +20,6 @@ router.post("/start-mining", async (req: Request, res: Response) => {
     return res.status(400).json({
       success: false,
       message: "Mining already in progress",
-      data: user,
     });
   }
 
@@ -28,7 +27,6 @@ router.post("/start-mining", async (req: Request, res: Response) => {
     return res.status(403).json({
       success: false,
       message: "Vault is full. Please collect your coins first.",
-      data: user,
     });
   }
 
@@ -37,7 +35,6 @@ router.post("/start-mining", async (req: Request, res: Response) => {
       success: false,
       message:
         "You cannot start mining — energy is depleted. Please recover energy first",
-      data: user,
     });
   }
 
@@ -46,7 +43,6 @@ router.post("/start-mining", async (req: Request, res: Response) => {
       success: false,
       message:
         "You cannot start mining — your health is 0. Revive before mining again",
-      data: user,
     });
   }
 
@@ -249,6 +245,13 @@ router.post("/recover-energy", async (req: Request, res: Response) => {
     });
   }
 
+  if (user.currentEnergy === user.maxEnergy) {
+    return res.status(403).json({
+      success: false,
+      message: "You already have energy",
+    });
+  }
+
   const updatedUser = await prisma.user.update({
     where: {
       id: user.id,
@@ -280,6 +283,13 @@ router.post("/recover-health", async (req: Request, res: Response) => {
     return res.status(403).json({
       success: false,
       message: "Not enough coins",
+    });
+  }
+
+  if (user.currentHealth === user.maxHealth) {
+    return res.status(403).json({
+      success: false,
+      message: "You're already healthy",
     });
   }
 
