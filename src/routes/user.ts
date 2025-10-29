@@ -1,10 +1,10 @@
 import express from "express";
 import prisma from "../prisma";
-import { authMiddleware } from "../middleware/authenticate";
+import { authenticate } from "../middleware/authenticate";
 
 const router = express.Router();
 
-router.use(authMiddleware);
+router.use(authenticate);
 
 router.get("/me", async (req, res) => {
   try {
@@ -21,7 +21,6 @@ router.get("/me", async (req, res) => {
         coins: true,
         tempCoins: true,
         level: true,
-        miningStarted: true,
         lastMiningTick: true,
         createdAt: true,
         updatedAt: true,
