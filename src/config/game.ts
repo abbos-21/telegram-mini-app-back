@@ -1,4 +1,3 @@
-export const MINING_RATE = 2;
 export const LEVEL_THRESHOLDS = [
   0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500, 5500, 6600, 7800, 9100,
   10500,
@@ -19,3 +18,6 @@ export const REFERRAL_REWARDS = {
   14: 70,
   15: 75,
 };
+
+export const ENERGY_PRICE = 25;
+export const HEALTH_PRICE = 25;
