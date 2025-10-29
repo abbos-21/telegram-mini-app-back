@@ -121,8 +121,8 @@ router.post("/mine", async (req, res) => {
   tempCoins += mined;
 
   // 🧮 Only consume if mining occurred
-  const energyLoss = elapsedSeconds / 60; // 30 energy per minute
-  const healthLoss = elapsedSeconds / 90; // slower health drain
+  const energyLoss = elapsedSeconds / 60; // 1 energy per minute
+  const healthLoss = elapsedSeconds / 10; // slower health drain
 
   let newEnergy = Math.max(0, user.energy - energyLoss);
   let newHealth = Math.max(0, user.health - healthLoss);
