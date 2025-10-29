@@ -7,7 +7,7 @@ interface AuthTokenPayload extends JwtPayload {
   id: number;
 }
 
-export async function authMiddleware(
+export async function authenticate(
   req: Request,
   res: Response,
   next: NextFunction

@@ -1,10 +1,12 @@
 import { Server as SocketIOServer } from "socket.io";
 import { Request } from "express";
+import { User } from "../generated/prisma/client";
 
 declare global {
   namespace Express {
     interface Request {
-      io: SocketIOServer;
+      io?: SocketIOServer;
+      user?: User;
     }
   }
 }

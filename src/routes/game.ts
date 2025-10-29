@@ -1,246 +1,249 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import prisma from "../prisma";
-import { authMiddleware } from "../middleware/authMiddleware";
-import {
-  LEVEL_THRESHOLDS,
-  MINING_RATE,
-  REFERRAL_REWARDS,
-} from "../config/game";
-// import { emitTempCoinsUpdate } from "..";
+import { authenticate } from "../middleware/authenticate";
 
 const router = express.Router();
+router.use(authenticate);
 
-router.use(authMiddleware);
+router.post("/start-mining", async (req: Request, res: Response) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
 
-router.post("/mine", async (req, res) => {
-  const authUser = (req as any).user;
+  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
 
-  const user = await prisma.user.findUnique({ where: { id: authUser.id } });
-  if (!user)
-    return res.status(404).json({ success: false, message: "User not found." });
+  // ❌ Prevent starting if already mining
+  if (user.isMining) {
+    return res.status(400).json({
+      success: false,
+      message: "Mining already in progress",
+    });
+  }
 
-  const now = new Date();
+  // ❌ Prevent starting if vault is full
+  if (user.tempCoins >= user.vaultCapacity) {
+    return res.status(403).json({
+      success: false,
+      message: "Vault is full. Please collect your coins first.",
+    });
+  }
 
-  if (user.health <= 0) {
-    if (user.tempCoins > 0) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { tempCoins: 0, miningStarted: null, lastMiningTick: null },
-      });
-    }
-    return res.json({
+  // ❌ Prevent starting if energy is 0
+  if (user.currentEnergy <= 0) {
+    return res.status(403).json({
       success: false,
       message:
-        "Your health reached 0! All mined coins are lost and mining stopped.",
-      data: {
-        ...user,
-      },
+        "You cannot start mining — energy is depleted. Please recover energy first.",
     });
   }
 
-  if (user.energy <= 0) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { miningStarted: null, lastMiningTick: null },
-    });
-    return res.json({
+  // ❌ Prevent starting if health is 0
+  if (user.currentHealth <= 0) {
+    return res.status(403).json({
       success: false,
-      message: "Your energy is 0! Mining stopped. Please recharge energy.",
-      data: {
-        ...user,
-      },
+      message:
+        "You cannot start mining — your health is 0. Revive before mining again.",
     });
   }
 
-  if (!user.miningStarted) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { miningStarted: now, lastMiningTick: now },
-    });
-    return res.json({
-      success: true,
-      data: {
-        ...user,
-        miningStarted: now,
-        lastMiningTick: now,
-        message: "Mining started!",
-      },
+  // ✅ Start mining
+  const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      lastMiningTick: new Date(),
+      isMining: true,
+    },
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Mining started",
+    data: { user: updatedUser },
+  });
+});
+
+router.post("/sync", async (req: Request, res: Response) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
+
+  if (!user.isMining || !user.lastMiningTick) {
+    return res.status(409).json({
+      success: false,
+      message: "Mining has not started. Please call /start-mining first.",
     });
   }
 
-  const lastTick = user.lastMiningTick || user.miningStarted;
-  const elapsedSeconds = Math.floor(
-    (now.getTime() - new Date(lastTick).getTime()) / 1000
+  const now = new Date();
+  const elapsedSeconds = (now.getTime() - user.lastMiningTick.getTime()) / 1000;
+
+  // Calculate time until each limit is reached
+  const secondsToVaultFull =
+    (user.vaultCapacity - user.tempCoins) / user.miningRate;
+  const secondsToEnergyDepletion = user.currentEnergy / user.energyPerSecond;
+  const secondsToHealthDepletion = user.currentHealth / user.healthPerSecond;
+
+  // Mining stops when any of these limits is reached
+  const maxMiningSeconds = Math.min(
+    secondsToVaultFull,
+    secondsToEnergyDepletion,
+    secondsToHealthDepletion
   );
 
-  if (elapsedSeconds <= 0) {
-    return res.json({
-      success: true,
-      data: { ...user, message: "No new coins mined yet." },
-    });
-  }
+  // Limit actual elapsed time
+  const actualMiningSeconds = Math.min(elapsedSeconds, maxMiningSeconds);
 
-  let tempCoins = user.tempCoins;
-  const maxCapacity = user.vaultCapacity;
+  // Calculate mining results
+  const minedCoins = actualMiningSeconds * user.miningRate;
+  const elapsedEnergy = actualMiningSeconds * user.energyPerSecond;
+  const elapsedHealth = actualMiningSeconds * user.healthPerSecond;
 
-  if (tempCoins >= maxCapacity) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastMiningTick: now },
-    });
-    return res.json({
-      success: true,
-      data: {
-        ...user,
-        vaultFull: true,
-        message: "Vault is full! Collect to continue mining.",
-      },
-    });
-  }
+  // New values after mining
+  let newTempCoins = Math.min(user.tempCoins + minedCoins, user.vaultCapacity);
+  let newEnergy = Math.max(user.currentEnergy - elapsedEnergy, 0);
+  let newHealth = Math.max(user.currentHealth - elapsedHealth, 0);
 
-  const potentialMined = elapsedSeconds * MINING_RATE;
-  const mined = Math.min(potentialMined, maxCapacity - tempCoins);
+  // Determine stop condition
+  let shouldStopMining = false;
+  let message = "Mining progress synced";
 
-  // If nothing mined, skip energy/health loss
-  if (mined <= 0) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastMiningTick: now },
-    });
-    return res.json({
-      success: true,
-      data: {
-        ...user,
-        vaultFull: true,
-        message:
-          "Vault is full! No mining progress — energy and health not consumed.",
-      },
-    });
-  }
-
-  tempCoins += mined;
-
-  // 🧮 Only consume if mining occurred
-  const energyLoss = elapsedSeconds / 60; // 1 energy per minute
-  const healthLoss = elapsedSeconds / 10; // slower health drain
-
-  let newEnergy = Math.max(0, user.energy - energyLoss);
-  let newHealth = Math.max(0, user.health - healthLoss);
-
-  let miningStopped = false;
-  let burnedCoins = false;
-
-  // If health hits 0 → burn coins and stop mining
-  if (newHealth <= 0) {
-    tempCoins = 0;
-    miningStopped = true;
-    burnedCoins = true;
-  }
-
-  // If energy hits 0 → stop mining
+  // ✅ Case 1: Energy Depleted → Stop mining
   if (newEnergy <= 0) {
-    miningStopped = true;
+    shouldStopMining = true;
+    message = "Mining stopped: Energy depleted";
+  }
+
+  // ✅ Case 2: Health Depleted → Burn all temporary coins and stop
+  if (newHealth <= 0) {
+    shouldStopMining = true;
+    newTempCoins = 0; // burn everything
+    message = "Mining stopped: Health depleted — all temporary coins burned";
+  }
+
+  // ✅ Case 3: Vault full → Stop mining
+  if (newTempCoins >= user.vaultCapacity) {
+    shouldStopMining = true;
+    message = "Mining stopped: Vault full";
   }
 
   const updatedUser = await prisma.user.update({
     where: { id: user.id },
     data: {
-      tempCoins,
+      tempCoins: newTempCoins,
+      currentEnergy: newEnergy,
+      currentHealth: newHealth,
       lastMiningTick: now,
-      energy: newEnergy,
-      health: newHealth,
-      ...(miningStopped ? { miningStarted: null } : {}),
+      isMining: !shouldStopMining,
     },
   });
 
-  if (burnedCoins) {
-    return res.json({
+  return res.status(200).json({
+    success: true,
+    message,
+    data: updatedUser,
+  });
+});
+
+router.post("/collect-coins", async (req: Request, res: Response) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
+
+  // ❌ Prevent collecting if health is zero
+  if (user.currentHealth <= 0) {
+    return res.status(403).json({
       success: false,
       message:
-        "Health dropped to 0! Your mined coins were lost and mining stopped.",
-      data: updatedUser,
+        "You cannot collect coins — your health is depleted and all temporary coins have burned.",
     });
   }
 
-  if (miningStopped) {
-    return res.json({
+  // ❌ Prevent collecting if no coins available
+  if (user.tempCoins <= 0) {
+    return res.status(403).json({
       success: false,
-      message: "Energy depleted! Mining stopped.",
-      data: updatedUser,
+      message: "No coins to collect.",
     });
   }
 
-  return res.json({
-    success: true,
+  // ✅ Require minimum coins to collect
+  if (user.tempCoins < user.vaultCapacity * 0.1) {
+    return res.status(403).json({
+      success: false,
+      message:
+        "Insufficient funds: Your temporary coins must be at least 10% of your vault capacity to collect.",
+    });
+  }
+
+  // ✅ Prevent overflow collection
+  if (user.tempCoins > user.vaultCapacity) {
+    return res.status(403).json({
+      success: false,
+      message:
+        "Vault capacity exceeded: Temporary coins cannot exceed maximum vault capacity.",
+    });
+  }
+
+  const tempCoins = user.tempCoins;
+
+  // ✅ Stop mining before collecting
+  let updatedUser = await prisma.user.update({
+    where: { id: user.id },
     data: {
-      ...updatedUser,
-      mined,
-      vaultFull: tempCoins >= maxCapacity,
-      message: `Mined ${mined.toFixed(4)} coins. Energy: ${newEnergy.toFixed(
-        1
-      )}, Health: ${newHealth.toFixed(1)}`,
+      coins: user.coins + tempCoins,
+      tempCoins: 0,
+      isMining: false, // stop mining before collection
+    },
+  });
+
+  // ✅ Optional: auto-restart mining
+  const AUTO_RESTART_MINING = true;
+  if (AUTO_RESTART_MINING) {
+    updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isMining: true,
+        lastMiningTick: new Date(),
+      },
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: `Collected ${tempCoins.toFixed(2)} coins`,
+    data: {
+      user: updatedUser,
+      coinsCollected: tempCoins,
     },
   });
 });
 
-router.post("/collect", async (req, res) => {
-  const authUser = (req as any).user;
-  const user = await prisma.user.findUnique({ where: { id: authUser.id } });
-
-  if (!user) {
-    return res.status(404).json({ success: false, message: "User not found." });
-  }
-
-  if (user.tempCoins < user.vaultCapacity) {
-    return res.json({ success: false, message: "No coins to collect." });
-  }
-
-  const collected = user.tempCoins;
-  let totalCoins = user.coins + collected;
-  let newLevel = user.level;
-
-  for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
-    if (totalCoins >= (LEVEL_THRESHOLDS[i] ?? 0)) {
-      newLevel = i + 1;
-      break;
-    }
-  }
-
-  if (newLevel > user.level && user.referredById) {
-    const referrer = await prisma.user.findUnique({
-      where: { id: user.referredById },
-    });
-
-    if (referrer) {
-      const reward =
-        REFERRAL_REWARDS[newLevel as keyof typeof REFERRAL_REWARDS] || 0;
-
-      if (reward > 0) {
-        await prisma.user.update({
-          where: { id: referrer.id },
-          data: { coins: { increment: reward } },
-        });
-      }
-    }
-  }
+router.post("/stop-mining", async (req: Request, res: Response) => {
+  if (!req.user?.id)
+    return res.status(401).json({ success: false, message: "Unauthorized" });
 
   const updatedUser = await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      coins: totalCoins,
-      tempCoins: 0,
-      level: newLevel,
-      lastMiningTick: new Date(),
-    },
+    where: { id: req.user.id },
+    data: { isMining: false },
   });
 
-  res.json({
+  return res.status(200).json({
     success: true,
-    data: {
-      updatedUser,
-      collected,
-      message: `Collected ${collected.toFixed(4)} coins.`,
-    },
+    message: "Mining stopped manually",
+    data: updatedUser,
   });
 });
 

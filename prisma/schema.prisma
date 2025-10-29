@@ -9,40 +9,36 @@ datasource db {
 }
 
 model User {
-  id             Int       @id @default(autoincrement())
-  telegramId     String       @unique
-  username       String?
-  firstName      String?
-  lastName       String?
-  languageCode   String?
-  isBot          Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id               Int       @id @default(autoincrement())
+  telegramId       String    @unique
+  username         String?
+  firstName        String?
+  lastName         String?
+  languageCode     String?
+  isBot            Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  coins          Float     @default(0)
-  level          Int       @default(1)
-  miningStarted  DateTime?
-  miningRate     Float     @default(0.01)
+  coins            Float     @default(0)
+  level            Int       @default(1)
+  miningRate       Float     @default(0.01)
 
-  referredById   Int?
-  referredBy     User?     @relation("UserReferrals", fields: [referredById], references: [id])
-  referrals      User[]    @relation("UserReferrals")
+  referredById     Int?
+  referredBy       User?     @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals        User[]    @relation("UserReferrals")
 
-  lastMiningTick DateTime?
+  lastMiningTick   DateTime?
+  isMining         Boolean   @default(false)
 
-  tempCoins      Float     @default(0)
-  vaultCapacity  Float     @default(60)
+  tempCoins        Float     @default(0)
+  vaultCapacity    Float     @default(36)
 
-  // 🆕 New fields
-  health         Float     @default(60) // in minutes
-  healthMax      Float     @default(60)
-  energy         Float     @default(60) // in minutes
-  energyMax      Float     @default(60)
+  currentHealth    Float     @default(3600)
+  maxHealth        Float     @default(3600)
+
+  currentEnergy    Float     @default(3600)
+  maxEnergy        Float     @default(3600)
+
+  healthPerSecond  Float     @default(0.5)
+  energyPerSecond  Float     @default(1)
 }
-
-
-
-
-
-
-
