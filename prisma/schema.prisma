@@ -41,4 +41,6 @@ model User {
 
   healthPerSecond  Float     @default(0.5)
   energyPerSecond  Float     @default(1)
+
+  lastWheelSpin DateTime?
 }

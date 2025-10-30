@@ -19,5 +19,18 @@ export const REFERRAL_REWARDS = {
   15: 75,
 };
 
+export const SPIN_WHEEL_COOLDOWN_HOURS = 12;
+
+export const SPIN_WHEEL_PROBABILITY_DATA = {
+  5: 24.2,
+  10: 21.2,
+  15: 18.2,
+  20: 15.2,
+  25: 12.1,
+  30: 9.1,
+  35: 6.1,
+  40: 3.0,
+};
+
 export const ENERGY_PRICE = 25;
 export const HEALTH_PRICE = 25;

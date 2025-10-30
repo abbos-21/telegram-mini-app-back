@@ -1,7 +1,13 @@
 import express, { Request, Response } from "express";
 import prisma from "../prisma";
 import { authenticate } from "../middleware/authenticate";
-import { ENERGY_PRICE, HEALTH_PRICE } from "../config/game";
+import {
+  ENERGY_PRICE,
+  HEALTH_PRICE,
+  SPIN_WHEEL_PROBABILITY_DATA,
+  SPIN_WHEEL_COOLDOWN_HOURS,
+} from "../config/game";
+import { selectPrize } from "../lib/selectPrize";
 
 const router = express.Router();
 router.use(authenticate);
@@ -203,16 +209,13 @@ router.post("/collect-coins", async (req: Request, res: Response) => {
   });
 
   if (updatedUser.currentEnergy && updatedUser.currentHealth) {
-    const AUTO_RESTART_MINING = true;
-    if (AUTO_RESTART_MINING) {
-      updatedUser = await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          isMining: true,
-          lastMiningTick: new Date(),
-        },
-      });
-    }
+    updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isMining: true,
+        lastMiningTick: new Date(),
+      },
+    });
   }
 
   return res.status(200).json({
@@ -325,6 +328,100 @@ router.post("/recover-health", async (req: Request, res: Response) => {
     message: "Operation successful",
     data: {
       user: updatedUser,
+    },
+  });
+});
+
+router.post("/spin-wheel", async (req: Request, res: Response) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
+
+  const now = new Date();
+
+  if (user.lastWheelSpin) {
+    const diffHours =
+      (now.getTime() - new Date(user.lastWheelSpin).getTime()) / 1000 / 3600;
+
+    if (diffHours < SPIN_WHEEL_COOLDOWN_HOURS) {
+      const remaining = SPIN_WHEEL_COOLDOWN_HOURS - diffHours;
+      const hours = Math.floor(remaining);
+      const minutes = Math.floor((remaining - hours) * 60);
+
+      return res.status(403).json({
+        success: false,
+        message: `You can spin again in ${hours}h ${minutes}m.`,
+        data: { remainingHours: remaining },
+      });
+    }
+  }
+
+  const prize = selectPrize(SPIN_WHEEL_PROBABILITY_DATA);
+
+  const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      coins: user.coins + prize,
+      lastWheelSpin: now,
+    },
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: `You won ${prize} coins!`,
+    data: {
+      user: updatedUser,
+      prize,
+    },
+  });
+});
+
+router.get("/spin-wheel/status", async (req: Request, res: Response) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!user) {
+    return res.status(404).json({ success: false, message: "User not found" });
+  }
+
+  const now = new Date();
+  let canSpin = true;
+  let remainingMs = 0;
+
+  if (user.lastWheelSpin) {
+    const lastSpin = new Date(user.lastWheelSpin);
+    const diffMs = now.getTime() - lastSpin.getTime();
+    const cooldownMs = SPIN_WHEEL_COOLDOWN_HOURS * 3600 * 1000;
+
+    if (diffMs < cooldownMs) {
+      canSpin = false;
+      remainingMs = cooldownMs - diffMs;
+    }
+  }
+
+  const remainingHours = remainingMs / 3600000;
+  const hours = Math.floor(remainingHours);
+  const minutes = Math.floor((remainingHours - hours) * 60);
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      canSpin,
+      remaining: canSpin
+        ? null
+        : {
+            hours,
+            minutes,
+            remainingHours,
+          },
+      lastWheelSpin: user.lastWheelSpin,
     },
   });
 });
