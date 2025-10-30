@@ -22,6 +22,22 @@ router.get("/me", async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
+    if (!dbUser.currentHealth && dbUser.tempCoins) {
+      const updatedUser = await prisma.user.update({
+        where: { id: dbUser.id },
+        data: {
+          tempCoins: 0,
+        },
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          user: updatedUser,
+        },
+      });
+    }
+
     return res.json({
       success: true,
       data: {
