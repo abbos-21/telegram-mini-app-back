@@ -23,7 +23,7 @@ router.post("/start-mining", async (req: Request, res: Response) => {
     });
   }
 
-  if (!user.currentEnergy && user.tempCoins) {
+  if (!user.currentHealth && user.tempCoins) {
     user = await prisma.user.update({
       where: { id: user.id },
       data: {
