@@ -202,15 +202,17 @@ router.post("/collect-coins", async (req: Request, res: Response) => {
     },
   });
 
-  const AUTO_RESTART_MINING = true;
-  if (AUTO_RESTART_MINING) {
-    updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        isMining: true,
-        lastMiningTick: new Date(),
-      },
-    });
+  if (updatedUser.currentEnergy && updatedUser.currentHealth) {
+    const AUTO_RESTART_MINING = true;
+    if (AUTO_RESTART_MINING) {
+      updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          isMining: true,
+          lastMiningTick: new Date(),
+        },
+      });
+    }
   }
 
   return res.status(200).json({
