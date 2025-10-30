@@ -26,7 +26,7 @@ router.post("/start-mining", async (req: Request, res: Response) => {
   if (user.tempCoins >= user.vaultCapacity) {
     return res.status(403).json({
       success: false,
-      message: "Vault is full. Please collect your coins first.",
+      message: "Vault is full. Please collect your coins first",
     });
   }
 
@@ -74,7 +74,7 @@ router.post("/sync", async (req: Request, res: Response) => {
   if (!user.isMining || !user.lastMiningTick) {
     return res.status(409).json({
       success: false,
-      message: "Mining has not started. Please call /start-mining first.",
+      message: "Mining has not started. Please call /start-mining first",
     });
   }
 
@@ -135,7 +135,9 @@ router.post("/sync", async (req: Request, res: Response) => {
   return res.status(200).json({
     success: true,
     message,
-    data: updatedUser,
+    data: {
+      user: updatedUser,
+    },
   });
 });
 
@@ -224,7 +226,9 @@ router.post("/stop-mining", async (req: Request, res: Response) => {
   return res.status(200).json({
     success: true,
     message: "Mining stopped manually",
-    data: updatedUser,
+    data: {
+      user: updatedUser,
+    },
   });
 });
 
@@ -265,7 +269,9 @@ router.post("/recover-energy", async (req: Request, res: Response) => {
   return res.status(200).json({
     success: true,
     message: "Operation successful",
-    data: updatedUser,
+    data: {
+      user: updatedUser,
+    },
   });
 });
 
@@ -306,7 +312,9 @@ router.post("/recover-health", async (req: Request, res: Response) => {
   return res.status(200).json({
     success: true,
     message: "Operation successful",
-    data: updatedUser,
+    data: {
+      user: updatedUser,
+    },
   });
 });
 

@@ -1,5 +1,5 @@
 import { Server as SocketIOServer } from "socket.io";
-import { Request } from "express";
+import { Request, Response } from "express";
 import { User } from "../generated/prisma/client";
 
 declare global {

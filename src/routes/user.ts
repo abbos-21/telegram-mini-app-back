@@ -8,24 +8,12 @@ router.use(authenticate);
 
 router.get("/me", async (req, res) => {
   try {
-    const user = (req as any).user;
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
 
     const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: {
-        id: true,
-        telegramId: true,
-        username: true,
-        firstName: true,
-        lastName: true,
-        coins: true,
-        tempCoins: true,
-        level: true,
-        lastMiningTick: true,
-        createdAt: true,
-        updatedAt: true,
-        referredById: true,
-      },
+      where: { id: req.user.id },
     });
 
     if (!dbUser) {
@@ -36,7 +24,9 @@ router.get("/me", async (req, res) => {
 
     return res.json({
       success: true,
-      data: dbUser,
+      data: {
+        user: dbUser,
+      },
     });
   } catch (error) {
     console.error("Error fetching user data:", error);
