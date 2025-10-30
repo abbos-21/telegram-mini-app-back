@@ -11,7 +11,7 @@ router.post("/start-mining", async (req: Request, res: Response) => {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 
-  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+  let user = await prisma.user.findUnique({ where: { id: req.user.id } });
   if (!user) {
     return res.status(404).json({ success: false, message: "User not found" });
   }
@@ -20,6 +20,15 @@ router.post("/start-mining", async (req: Request, res: Response) => {
     return res.status(400).json({
       success: false,
       message: "Mining already in progress",
+    });
+  }
+
+  if (!user.currentEnergy && user.tempCoins) {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        tempCoins: 0,
+      },
     });
   }
 
