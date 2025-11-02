@@ -27,6 +27,8 @@ model User {
   referredBy       User?     @relation("UserReferrals", fields: [referredById], references: [id])
   referrals        User[]    @relation("UserReferrals")
 
+  rewardedLevels   String    @default("[]")
+
   lastMiningTick   DateTime?
   isMining         Boolean   @default(false)
 

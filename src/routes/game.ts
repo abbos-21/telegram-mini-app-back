@@ -8,6 +8,8 @@ import {
   SPIN_WHEEL_COOLDOWN_HOURS,
 } from "../config/game";
 import { selectPrize } from "../lib/selectPrize";
+import { getLevelByCoins } from "../lib/levelUtils";
+import { checkAndRewardReferrer } from "../lib/referralReward";
 
 const router = express.Router();
 router.use(authenticate);
@@ -207,6 +209,16 @@ router.post("/collect-coins", async (req: Request, res: Response) => {
       isMining: false,
     },
   });
+
+  const newLevel = getLevelByCoins(updatedUser.coins);
+  if (newLevel > updatedUser.level) {
+    updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { level: newLevel },
+    });
+
+    await checkAndRewardReferrer(user.id, newLevel);
+  }
 
   if (updatedUser.currentEnergy < updatedUser.maxEnergy * 0.005) {
     updatedUser = await prisma.user.update({
