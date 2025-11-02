@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import prisma from "../prisma";
 import { authenticate } from "../middleware/authenticate";
 import { BOT_USERNAME } from "../config/env";
+import { REFERRAL_REWARDS } from "../config/game";
 
 const router = express.Router();
 
@@ -72,10 +73,19 @@ router.get("/referrals", authenticate, async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
+    const referralEarnings = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        referralEarnings: true,
+      },
+    });
+
     return res.json({
       success: true,
       data: {
         count: referrals.length,
+        referralEarnings,
+        referralRewards: REFERRAL_REWARDS,
         referrals,
       },
     });

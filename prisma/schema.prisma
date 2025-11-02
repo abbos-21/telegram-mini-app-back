@@ -29,6 +29,7 @@ model User {
   referrals        User[]    @relation("UserReferrals")
 
   rewardedLevels   String    @default("[]")
+  referralEarnings Float     @default(0)
 
   lastMiningTick   DateTime?
   isMining         Boolean   @default(false)

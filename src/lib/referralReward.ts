@@ -29,6 +29,7 @@ export async function checkAndRewardReferrer(userId: number, newLevel: number) {
     data: {
       coins: { increment: rewardAmount },
       totalCoins: { increment: rewardAmount },
+      referralEarnings: { increment: rewardAmount },
     },
   });
 
