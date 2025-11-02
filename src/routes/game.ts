@@ -457,60 +457,60 @@ router.get("/spin-wheel/status", async (req: Request, res: Response) => {
   });
 });
 
-router.post("/recover-energy-by-ad", async (req: Request, res: Response) => {
-  if (!req.user?.id) {
-    return res.status(401).json({ success: false, message: "Unauthorized" });
-  }
+// router.post("/recover-energy-by-ad", async (req: Request, res: Response) => {
+//   if (!req.user?.id) {
+//     return res.status(401).json({ success: false, message: "Unauthorized" });
+//   }
 
-  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-  if (!user) {
-    return res.status(404).json({ success: false, message: "User not found" });
-  }
+//   const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+//   if (!user) {
+//     return res.status(404).json({ success: false, message: "User not found" });
+//   }
 
-  const updatedUser = await prisma.user.update({
-    where: {
-      id: user.id,
-    },
-    data: {
-      currentEnergy: user.maxEnergy,
-    },
-  });
+//   const updatedUser = await prisma.user.update({
+//     where: {
+//       id: user.id,
+//     },
+//     data: {
+//       currentEnergy: user.maxEnergy,
+//     },
+//   });
 
-  return res.status(200).json({
-    success: true,
-    message: "Operation successful",
-    data: {
-      user: updatedUser,
-    },
-  });
-});
+//   return res.status(200).json({
+//     success: true,
+//     message: "Operation successful",
+//     data: {
+//       user: updatedUser,
+//     },
+//   });
+// });
 
-router.post("/recover-health-by-ad", async (req: Request, res: Response) => {
-  if (!req.user?.id) {
-    return res.status(401).json({ success: false, message: "Unauthorized" });
-  }
+// router.post("/recover-health-by-ad", async (req: Request, res: Response) => {
+//   if (!req.user?.id) {
+//     return res.status(401).json({ success: false, message: "Unauthorized" });
+//   }
 
-  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-  if (!user) {
-    return res.status(404).json({ success: false, message: "User not found" });
-  }
+//   const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+//   if (!user) {
+//     return res.status(404).json({ success: false, message: "User not found" });
+//   }
 
-  const updatedUser = await prisma.user.update({
-    where: {
-      id: user.id,
-    },
-    data: {
-      currentHealth: user.maxHealth,
-    },
-  });
+//   const updatedUser = await prisma.user.update({
+//     where: {
+//       id: user.id,
+//     },
+//     data: {
+//       currentHealth: user.maxHealth,
+//     },
+//   });
 
-  return res.status(200).json({
-    success: true,
-    message: "Operation successful",
-    data: {
-      user: updatedUser,
-    },
-  });
-});
+//   return res.status(200).json({
+//     success: true,
+//     message: "Operation successful",
+//     data: {
+//       user: updatedUser,
+//     },
+//   });
+// });
 
 export default router;
