@@ -205,12 +205,13 @@ router.post("/collect-coins", async (req: Request, res: Response) => {
     where: { id: user.id },
     data: {
       coins: user.coins + tempCoins,
+      totalCoins: user.totalCoins + tempCoins,
       tempCoins: 0,
       isMining: false,
     },
   });
 
-  const newLevel = getLevelByCoins(updatedUser.coins);
+  const newLevel = getLevelByCoins(updatedUser.totalCoins);
   if (newLevel > updatedUser.level) {
     updatedUser = await prisma.user.update({
       where: { id: user.id },

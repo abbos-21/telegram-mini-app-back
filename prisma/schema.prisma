@@ -19,6 +19,7 @@ model User {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  totalCoins       Float     @default(0)
   coins            Float     @default(0)
   level            Int       @default(1)
   miningRate       Float     @default(0.01)

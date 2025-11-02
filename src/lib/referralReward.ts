@@ -2,25 +2,44 @@ import prisma from "../prisma";
 import { REFERRAL_REWARDS } from "../config/game";
 
 export async function checkAndRewardReferrer(userId: number, newLevel: number) {
-  const user = await prisma.user.findUnique({
+  if (newLevel < 2) return;
+
+  const referralUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { referredById: true },
+    select: { referredById: true, rewardedLevels: true },
   });
 
-  if (!user?.referredById) return;
+  if (!referralUser?.referredById) return;
+
+  let rewardedLevels: number[] = [];
+  try {
+    rewardedLevels = JSON.parse(referralUser.rewardedLevels || "[]");
+  } catch {
+    rewardedLevels = [];
+  }
+
+  if (rewardedLevels.includes(newLevel)) return;
 
   const rewardAmount =
     REFERRAL_REWARDS[newLevel as keyof typeof REFERRAL_REWARDS];
   if (!rewardAmount) return;
 
   await prisma.user.update({
-    where: { id: user.referredById },
+    where: { id: referralUser.referredById },
     data: {
       coins: { increment: rewardAmount },
+      totalCoins: { increment: rewardAmount },
     },
   });
 
+  rewardedLevels.push(newLevel);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { rewardedLevels: JSON.stringify(rewardedLevels) },
+  });
+
   console.log(
-    `Referral reward: User ${user.referredById} earned ${rewardAmount} coins because referral ${userId} reached level ${newLevel}`
+    `✅ Referrer ${referralUser.referredById} received ${rewardAmount} coins for referral ${userId} reaching level ${newLevel}`
   );
 }

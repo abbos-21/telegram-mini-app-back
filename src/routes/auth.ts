@@ -9,8 +9,8 @@ const router = express.Router();
 router.post("/", async (req, res) => {
   try {
     const { initData, ref } = req.body;
-    const { valid, user } = verifyTelegramAuth(initData);
 
+    const { valid, user } = verifyTelegramAuth(initData);
     if (!valid || !user) {
       return res.status(401).json({
         success: false,
@@ -18,11 +18,26 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const refId = ref;
+    let referredById: number | null = null;
 
-    const referrer = refId
-      ? await prisma.user.findUnique({ where: { telegramId: refId } })
-      : null;
+    if (ref) {
+      let referrer = null;
+
+      if (ref.startsWith("ref_")) {
+        const userId = parseInt(ref.replace("ref_", ""), 10);
+        if (!isNaN(userId)) {
+          referrer = await prisma.user.findUnique({ where: { id: userId } });
+        }
+      } else {
+        referrer = await prisma.user.findUnique({
+          where: { telegramId: String(ref) },
+        });
+      }
+
+      if (referrer) {
+        referredById = referrer.id;
+      }
+    }
 
     const updateFields = {
       firstName: user.first_name || null,
@@ -38,7 +53,7 @@ router.post("/", async (req, res) => {
       create: {
         telegramId: String(user.id),
         ...updateFields,
-        ...(referrer && { referredById: referrer.id }),
+        ...(referredById ? { referredById } : {}),
       },
     });
 

@@ -1,6 +1,7 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import prisma from "../prisma";
 import { authenticate } from "../middleware/authenticate";
+import { BOT_USERNAME } from "../config/env";
 
 const router = express.Router();
 
@@ -35,6 +36,19 @@ router.get("/me", async (req, res) => {
       message: "Internal server error",
     });
   }
+});
+
+router.get("/invite-link", async (req: Request, res: Response) => {
+  if (!req.user?.id)
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+
+  const referralCode = `ref_${req.user.id}`;
+  const link = `https://t.me/${BOT_USERNAME}?start=${referralCode}`;
+
+  return res.status(200).json({
+    success: true,
+    data: { link },
+  });
 });
 
 export default router;
