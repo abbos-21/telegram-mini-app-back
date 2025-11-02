@@ -18,9 +18,13 @@ router.post("/", async (req, res) => {
       });
     }
 
+    let existingUser = await prisma.user.findUnique({
+      where: { telegramId: String(user.id) },
+    });
+
     let referredById: number | null = null;
 
-    if (ref) {
+    if (!existingUser && ref) {
       let referrer = null;
 
       if (ref.startsWith("ref_")) {
@@ -34,7 +38,7 @@ router.post("/", async (req, res) => {
         });
       }
 
-      if (referrer) {
+      if (referrer && referrer.telegramId !== String(user.id)) {
         referredById = referrer.id;
       }
     }
@@ -47,15 +51,22 @@ router.post("/", async (req, res) => {
       isBot: user.is_bot || false,
     };
 
-    const dbUser = await prisma.user.upsert({
-      where: { telegramId: String(user.id) },
-      update: updateFields,
-      create: {
-        telegramId: String(user.id),
-        ...updateFields,
-        ...(referredById ? { referredById } : {}),
-      },
-    });
+    let dbUser;
+
+    if (existingUser) {
+      dbUser = await prisma.user.update({
+        where: { telegramId: String(user.id) },
+        data: updateFields,
+      });
+    } else {
+      dbUser = await prisma.user.create({
+        data: {
+          telegramId: String(user.id),
+          ...updateFields,
+          ...(referredById ? { referredById } : {}),
+        },
+      });
+    }
 
     const token = jwt.sign({ id: dbUser.id }, JWT_SECRET, {
       expiresIn: "7d",
