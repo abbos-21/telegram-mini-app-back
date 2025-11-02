@@ -51,4 +51,41 @@ router.get("/invite-link", async (req: Request, res: Response) => {
   });
 });
 
+router.get("/referrals", authenticate, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const referrals = await prisma.user.findMany({
+      where: { referredById: userId },
+      select: {
+        id: true,
+        telegramId: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        level: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        count: referrals.length,
+        referrals,
+      },
+    });
+  } catch (error) {
+    console.error("Get referrals error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
 export default router;
