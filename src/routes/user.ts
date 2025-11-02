@@ -73,12 +73,10 @@ router.get("/referrals", authenticate, async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
-    const referralEarnings = await prisma.user.findUnique({
+    const { referralEarnings } = (await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        referralEarnings: true,
-      },
-    });
+      select: { referralEarnings: true },
+    })) || { referralEarnings: 0 };
 
     return res.json({
       success: true,
