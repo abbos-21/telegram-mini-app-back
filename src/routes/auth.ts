@@ -8,7 +8,6 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
   try {
-    console.log("Auth request body:", req.body);
     const { initData, ref } = req.body;
 
     const { valid, user } = verifyTelegramAuth(initData);

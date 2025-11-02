@@ -43,7 +43,7 @@ router.get("/invite-link", async (req: Request, res: Response) => {
     return res.status(401).json({ success: false, message: "Unauthorized" });
 
   const referralCode = `ref_${req.user.id}`;
-  const link = `https://t.me/${BOT_USERNAME}?start=${referralCode}`;
+  const link = `https://t.me/${BOT_USERNAME}?startapp=${referralCode}`;
 
   return res.status(200).json({
     success: true,
