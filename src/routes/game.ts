@@ -208,6 +208,24 @@ router.post("/collect-coins", async (req: Request, res: Response) => {
     },
   });
 
+  if (updatedUser.currentEnergy < updatedUser.maxEnergy * 0.005) {
+    updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        currentEnergy: 0,
+      },
+    });
+  }
+
+  if (updatedUser.currentHealth < updatedUser.maxHealth * 0.005) {
+    updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        currentHealth: 0,
+      },
+    });
+  }
+
   if (updatedUser.currentEnergy && updatedUser.currentHealth) {
     updatedUser = await prisma.user.update({
       where: { id: user.id },
