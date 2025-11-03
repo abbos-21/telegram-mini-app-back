@@ -133,16 +133,26 @@ router.post("/:name", async (req: Request, res: Response) => {
   }
 
   const key = meta.key;
-  const cost =
-    nextLevel <= maxLevel ? (UPGRADE_COSTS as any)[key][nextLevel] : null;
 
-  if (cost === null) {
-    return res
-      .status(400)
-      .json({
-        success: false,
-        message: "Invalid upgrade cost or max level reached",
-      });
+  // ✅ Prevent undefined cost at the final upgrade
+  const costArray = (UPGRADE_COSTS as any)[key];
+  const upgradableArray = (UPGRADABLES as any)[key];
+
+  if (!Array.isArray(costArray) || !Array.isArray(upgradableArray)) {
+    return res.status(500).json({
+      success: false,
+      message: "Upgrade data misconfigured",
+    });
+  }
+
+  // ✅ use currentLevel index for cost lookup, not nextLevel
+  const cost = costArray[currentLevel];
+
+  if (typeof cost !== "number" || isNaN(cost)) {
+    return res.status(400).json({
+      success: false,
+      message: `Invalid cost at level ${currentLevel} for ${name}`,
+    });
   }
 
   if (user.coins < cost) {
@@ -151,7 +161,14 @@ router.post("/:name", async (req: Request, res: Response) => {
       .json({ success: false, message: "Not enough coins to upgrade" });
   }
 
-  const newValue = (UPGRADABLES as any)[key][nextLevel];
+  const newValue = upgradableArray[nextLevel];
+  if (typeof newValue !== "number") {
+    return res.status(400).json({
+      success: false,
+      message: `Invalid upgrade value for ${name} at level ${nextLevel}`,
+    });
+  }
+
   const data: any = {
     coins: user.coins - cost,
     [meta.levelField]: nextLevel,
