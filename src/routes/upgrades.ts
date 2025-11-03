@@ -76,7 +76,7 @@ router.get("/status", async (req: Request, res: Response) => {
     let nextValue =
       nextLevel <= maxLevel ? (UPGRADABLES as any)[key][nextLevel] : null;
     const cost =
-      nextLevel <= maxLevel ? (UPGRADE_COSTS as any)[key][nextLevel] : null;
+      nextLevel <= maxLevel ? (UPGRADE_COSTS as any)[key][currentLevel] : null;
 
     let currentValue = (user as any)[meta.valueField];
 
