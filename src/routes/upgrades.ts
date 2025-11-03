@@ -133,7 +133,18 @@ router.post("/:name", async (req: Request, res: Response) => {
   }
 
   const key = meta.key;
-  const cost = (UPGRADE_COSTS as any)[key][nextLevel];
+  const cost =
+    nextLevel <= maxLevel ? (UPGRADE_COSTS as any)[key][nextLevel] : null;
+
+  if (cost === null) {
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message: "Invalid upgrade cost or max level reached",
+      });
+  }
+
   if (user.coins < cost) {
     return res
       .status(403)
