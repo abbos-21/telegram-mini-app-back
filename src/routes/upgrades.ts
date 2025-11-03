@@ -71,11 +71,11 @@ router.get("/status", async (req: Request, res: Response) => {
     const nextValue =
       nextLevel <= maxLevel ? (UPGRADABLES as any)[key][nextLevel] : null;
     const cost =
-      nextLevel <= maxLevel ? (UPGRADE_COSTS as any)[key][nextLevel] : null;
+      nextLevel <= maxLevel ? (UPGRADE_COSTS as any)[key][nextLevel - 1] : null;
 
     const currentValue = (user as any)[meta.valueField];
 
-    let effect = nextValue
+    const effect = nextValue
       ? `${effectLabel}: ${currentValue} -> ${nextValue}`
       : `${effectLabel}: Max level reached`;
 
@@ -123,7 +123,8 @@ router.post("/:name", async (req: Request, res: Response) => {
   }
 
   const key = meta.key;
-  const cost = (UPGRADE_COSTS as any)[key][nextLevel];
+  const cost = (UPGRADE_COSTS as any)[key][nextLevel - 1];
+
   if (user.coins < cost) {
     return res
       .status(403)
