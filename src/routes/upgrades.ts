@@ -134,19 +134,21 @@ router.post("/:name", async (req: Request, res: Response) => {
 
   const key = meta.key;
 
-  // ✅ Prevent undefined cost at the final upgrade
+  // ✅ Get config data
   const costArray = (UPGRADE_COSTS as any)[key];
-  const upgradableArray = (UPGRADABLES as any)[key];
+  const upgradableMap = (UPGRADABLES as any)[key];
 
-  if (!Array.isArray(costArray) || !Array.isArray(upgradableArray)) {
+  // ✅ Ensure both exist
+  if (!costArray || !upgradableMap) {
     return res.status(500).json({
       success: false,
       message: "Upgrade data misconfigured",
     });
   }
 
-  // ✅ use currentLevel index for cost lookup, not nextLevel
+  // ✅ Use currentLevel as index (cost array), nextLevel as key (object)
   const cost = costArray[currentLevel];
+  const newValue = upgradableMap[nextLevel];
 
   if (typeof cost !== "number" || isNaN(cost)) {
     return res.status(400).json({
@@ -155,34 +157,38 @@ router.post("/:name", async (req: Request, res: Response) => {
     });
   }
 
-  if (user.coins < cost) {
-    return res
-      .status(403)
-      .json({ success: false, message: "Not enough coins to upgrade" });
-  }
-
-  const newValue = upgradableArray[nextLevel];
-  if (typeof newValue !== "number") {
+  if (typeof newValue !== "number" || isNaN(newValue)) {
     return res.status(400).json({
       success: false,
       message: `Invalid upgrade value for ${name} at level ${nextLevel}`,
     });
   }
 
+  // ✅ Ensure user has enough coins and not zero
+  if (user.coins <= 0 || user.coins < cost) {
+    return res
+      .status(403)
+      .json({ success: false, message: "Not enough coins to upgrade" });
+  }
+
+  // ✅ Prepare update data
   const data: any = {
     coins: user.coins - cost,
     [meta.levelField]: nextLevel,
     [meta.valueField]: newValue,
   };
 
+  // ✅ Sync current stats if related
   if (name === "food") data.currentEnergy = newValue;
   if (name === "immune") data.currentHealth = newValue;
 
+  // ✅ Update user
   const updatedUser = await prisma.user.update({
     where: { id: user.id },
     data,
   });
 
+  // ✅ Respond
   return res.status(200).json({
     success: true,
     message: `${name} upgraded to level ${nextLevel}`,
