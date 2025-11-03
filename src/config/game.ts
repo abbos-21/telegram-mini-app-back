@@ -35,10 +35,6 @@ export const SPIN_WHEEL_PROBABILITY_DATA = {
 export const ENERGY_PRICE = 25;
 export const HEALTH_PRICE = 25;
 
-// ----------------------
-//  UPGRADABLES
-// ----------------------
-
 export const UPGRADABLES = {
   vaultCapacity: {
     1: 36,
@@ -102,20 +98,17 @@ export const UPGRADABLES = {
   },
 };
 
-// Upgrade costs per level (in coins)
 export const UPGRADE_COSTS = {
   vaultCapacity: [
-    0, 100, 200, 350, 550, 800, 1100, 1450, 1850, 2300, 2800, 3350, 3950, 4600,
+    0, 100, 200, 350, 550, 800, 1100, 1450, 1850, 2300, 2800, 3350, 3950,
   ],
   miningRate: [
-    0, 150, 300, 500, 750, 1050, 1400, 1800, 2250, 2750, 3300, 3900, 4550, 5250,
+    0, 150, 300, 500, 750, 1050, 1400, 1800, 2250, 2750, 3300, 3900, 4550,
   ],
   maxEnergy: [
     0, 200, 400, 700, 1050, 1450, 1900, 2400, 2950, 3550, 4200, 4900, 5650,
-    6450,
   ],
   maxHealth: [
     0, 200, 400, 700, 1050, 1450, 1900, 2400, 2950, 3550, 4200, 4900, 5650,
-    6450,
   ],
 };
