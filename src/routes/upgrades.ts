@@ -34,21 +34,25 @@ const upgradeDescriptions = {
     description: "Coin capacity",
     details: "Increase coin storage to accumulate more before collecting.",
     effectLabel: "Capacity",
+    unit: "coins",
   },
   work: {
     description: "Coin mining",
     details: "Increase mining speed to earn more coins per second.",
     effectLabel: "Income",
+    unit: "coins/second",
   },
   food: {
     description: "Energy tank",
     details: "Increase Energy tank for longer work without refilling.",
     effectLabel: "Work time",
+    unit: "min.",
   },
   immune: {
     description: "Immune strength",
     details: "Improve disease resistance. Higher level = fewer daily damages.",
     effectLabel: "Withstand diseases",
+    unit: "HP",
   },
 };
 
@@ -61,22 +65,28 @@ router.get("/status", async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, message: "User not found" });
 
   const maxLevel = 13;
+
   const status = Object.entries(upgradeMap).map(([name, meta]) => {
     const currentLevel = (user as any)[meta.levelField];
     const nextLevel = currentLevel + 1;
     const key = meta.key;
-    const { description, details, effectLabel } =
+    const { description, details, effectLabel, unit } =
       upgradeDescriptions[name as keyof typeof upgradeDescriptions];
 
-    const nextValue =
+    let nextValue =
       nextLevel <= maxLevel ? (UPGRADABLES as any)[key][nextLevel] : null;
     const cost =
-      nextLevel <= maxLevel ? (UPGRADE_COSTS as any)[key][nextLevel - 1] : null;
+      nextLevel <= maxLevel ? (UPGRADE_COSTS as any)[key][nextLevel] : null;
 
-    const currentValue = (user as any)[meta.valueField];
+    let currentValue = (user as any)[meta.valueField];
 
-    const effect = nextValue
-      ? `${effectLabel}: ${currentValue} -> ${nextValue}`
+    if (name === "food" || name === "immune") {
+      currentValue = Math.round(currentValue / 60);
+      if (nextValue) nextValue = Math.round(nextValue / 60);
+    }
+
+    let effect = nextValue
+      ? `${effectLabel}: ${currentValue} → ${nextValue} ${unit || ""}`
       : `${effectLabel}: Max level reached`;
 
     return {
@@ -123,8 +133,7 @@ router.post("/:name", async (req: Request, res: Response) => {
   }
 
   const key = meta.key;
-  const cost = (UPGRADE_COSTS as any)[key][nextLevel - 1];
-
+  const cost = (UPGRADE_COSTS as any)[key][nextLevel];
   if (user.coins < cost) {
     return res
       .status(403)
