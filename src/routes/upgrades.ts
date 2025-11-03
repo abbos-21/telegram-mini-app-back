@@ -86,7 +86,7 @@ router.get("/status", async (req: Request, res: Response) => {
     }
 
     let effect = nextValue
-      ? `${effectLabel}: ${currentValue} → ${nextValue} ${unit || ""}`
+      ? `${effectLabel}: ${currentValue} -> ${nextValue} ${unit || ""}`
       : `${effectLabel}: Max level reached`;
 
     return {
