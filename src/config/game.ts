@@ -1,5 +1,3 @@
-// config/game.ts
-
 export const LEVEL_THRESHOLDS = [
   0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500, 5500, 6600, 7800,
 ];
@@ -112,3 +110,6 @@ export const UPGRADE_COSTS = {
     0, 200, 400, 700, 1050, 1450, 1900, 2400, 2950, 3550, 4200, 4900, 5650,
   ],
 };
+
+export const COIN_TO_TON_RATE = 220000;
+export const MINIMUM_COIN_WITHDRAWAL = 55000;

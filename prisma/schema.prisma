@@ -51,5 +51,26 @@ model User {
   healthLevel      Int       @default(1)
 
   lastWheelSpin DateTime?
+
+  withdrawals Withdrawal[]
+}
+
+model Withdrawal {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  user          User      @relation(fields: [userId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  status        String    @default("PENDING") // PENDING, COMPLETED, FAILED
+  
+  amountCoins   Float
+  amountTon     Float
+  
+  targetAddress String
+  
+  txHash        String?
+  errorMessage  String?
 }
 
