@@ -24,14 +24,14 @@ router.post("/", async (req: Request, res: Response) => {
     const { amountCoins, targetAddress } = req.body;
 
     // --- 1. Input Validation ---
-    if (!amountCoins || !targetAddress) {
+    if (amountCoins === undefined || !targetAddress) {
       return res.status(400).json({
         success: false,
         message: "Missing amountCoins or targetAddress",
       });
     }
 
-    const coinAmountFloat = parseFloat(amountCoins);
+    const coinAmountFloat = Number(amountCoins);
     if (isNaN(coinAmountFloat) || coinAmountFloat <= 0) {
       return res
         .status(400)
@@ -51,9 +51,22 @@ router.post("/", async (req: Request, res: Response) => {
         .json({ success: false, message: "Invalid TON address format" });
     }
 
-    const tonAmount = coinAmountFloat / COIN_TO_TON_RATE;
+    // --- 2. Convert coins to TON safely ---
+    const tonAmountRaw = coinAmountFloat / COIN_TO_TON_RATE;
+    const tonAmount = Number(tonAmountRaw.toFixed(6)); // limit precision to 6 decimals
 
-    // --- 2. Atomic DB Transaction ---
+    if (isNaN(tonAmount) || tonAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid TON amount calculated (${tonAmountRaw})`,
+      });
+    }
+
+    console.log(
+      `User ${userId} withdrawing ${coinAmountFloat} coins = ${tonAmount} TON to ${targetAddress}`
+    );
+
+    // --- 3. Atomic DB Transaction ---
     let newWithdrawal;
     try {
       newWithdrawal = await prisma.$transaction(async (tx) => {
@@ -88,25 +101,34 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    // --- 3. Respond to client (queued) ---
+    // --- 4. Respond to client immediately ---
     res.status(202).json({
       success: true,
       message: "Withdrawal initiated. It may take a few minutes.",
       data: { withdrawal: newWithdrawal },
     });
 
-    // --- 4. Async payout (runs after response) ---
+    // --- 5. Perform async TON transfer ---
     try {
       const transfer = await sendTonTransaction({
         targetAddress,
-        amountTon: tonAmount,
+        amountTon: tonAmount, // validated and rounded
         message: `Withdrawal ID: ${newWithdrawal.id}`,
       });
 
       await prisma.withdrawal.update({
         where: { id: newWithdrawal.id },
-        data: { status: "COMPLETED" },
+        data: {
+          status: "COMPLETED",
+          txHash: transfer?.hash ? transfer.hash().toString("hex") : null,
+        },
       });
+
+      console.log(
+        `Withdrawal ${newWithdrawal.id} COMPLETED for user ${userId}, tx: ${
+          transfer?.hash ? transfer.hash().toString("hex") : "N/A"
+        }`
+      );
     } catch (error: any) {
       console.error(`Withdrawal ${newWithdrawal.id} FAILED:`, error.message);
 
@@ -125,6 +147,7 @@ router.post("/", async (req: Request, res: Response) => {
             data: { coins: { increment: coinAmountFloat } },
           });
         });
+
         console.log(`Refunded ${coinAmountFloat} coins to user ${userId}`);
       } catch (refundError: any) {
         console.error(
