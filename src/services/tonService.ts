@@ -5,8 +5,8 @@ import { Address, toNano } from "@ton/core";
 // 1. Configuration
 import {
   TON_API_ENDPOINT,
-  HOT_WALLET_MNEMONIC,
   TON_API_TOKEN,
+  HOT_WALLET_MNEMONIC,
 } from "../config/env";
 
 if (!TON_API_ENDPOINT || !HOT_WALLET_MNEMONIC) {
