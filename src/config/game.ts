@@ -112,4 +112,4 @@ export const UPGRADE_COSTS = {
 };
 
 export const COIN_TO_TON_RATE = 220000;
-export const MINIMUM_COIN_WITHDRAWAL = 55000;
+export const MINIMUM_COIN_WITHDRAWAL = 11000;

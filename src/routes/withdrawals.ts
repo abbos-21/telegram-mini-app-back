@@ -96,7 +96,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Try sending TON
     try {
-      const { txHash } = await sendTonTransaction(
+      await sendTonTransaction(
         targetAddress,
         amountTon,
         "Withdrawal from BrunoPlay"
@@ -105,10 +105,7 @@ router.post("/", async (req: Request, res: Response) => {
       // Update withdrawal as completed
       await prisma.withdrawal.update({
         where: { id: withdrawal.id },
-        data: {
-          status: "COMPLETED",
-          txHash,
-        },
+        data: { status: "COMPLETED" },
       });
 
       // Deduct user coins
