@@ -5,6 +5,7 @@ import {
   toNano,
   TonClient,
   WalletContractV5R1,
+  WalletContractV4,
 } from "@ton/ton";
 import { SendMode } from "@ton/core";
 
@@ -27,9 +28,8 @@ export async function sendTonTransaction(
   const mnemonic = HOT_WALLET_MNEMONIC.split(" ");
   const { publicKey, secretKey } = await mnemonicToWalletKey(mnemonic);
 
-  const walletContract = WalletContractV5R1.create({
+  const walletContract = WalletContractV4.create({
     workchain: 0,
-    walletId: { networkGlobalId: -3 }, // testnet
     publicKey,
   });
 
@@ -40,7 +40,7 @@ export async function sendTonTransaction(
   const transfer = wallet.createTransfer({
     seqno,
     secretKey,
-    sendMode: SendMode.PAY_GAS_SEPARATELY | SendMode.IGNORE_ERRORS,
+    sendMode: SendMode.PAY_GAS_SEPARATELY,
     messages: [
       internal({
         to: targetAddress,
