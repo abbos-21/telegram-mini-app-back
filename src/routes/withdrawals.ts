@@ -106,11 +106,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Try sending TON
     try {
-      await sendTonTransaction(
-        targetAddress,
-        amountTon,
-        "Withdrawal from BrunoPlay"
-      );
+      await sendTonTransaction(targetAddress, amountTon);
 
       // Update withdrawal as completed
       await prisma.withdrawal.update({

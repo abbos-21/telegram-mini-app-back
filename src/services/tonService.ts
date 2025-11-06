@@ -14,8 +14,7 @@ import {
 } from "../config/env";
 export async function sendTonTransaction(
   targetAddress: string,
-  amountTon: number,
-  message?: string
+  amountTon: number
 ) {
   const tonClient = new TonClient({
     endpoint: TON_API_ENDPOINT,
@@ -37,7 +36,7 @@ export async function sendTonTransaction(
       internal({
         to: targetAddress,
         value: toNano(amountTon),
-        body: comment(message || "Withdrawal from BrunoPlay"),
+        bounce: false,
       }),
     ],
     sendMode: SendMode.PAY_GAS_SEPARATELY,
