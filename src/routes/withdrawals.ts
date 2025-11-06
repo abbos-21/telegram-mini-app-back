@@ -1,7 +1,11 @@
 import express, { Request, Response } from "express";
 import prisma from "../prisma";
 import { authenticate } from "../middleware/authenticate";
-import { COIN_TO_TON_RATE, MINIMUM_COIN_WITHDRAWAL } from "../config/game";
+import {
+  COIN_TO_TON_RATE,
+  MAXIMUM_COIN_WITHDRAWAL,
+  MINIMUM_COIN_WITHDRAWAL,
+} from "../config/game";
 import { sendTonTransaction } from "../services/tonService";
 
 const router = express.Router();
@@ -65,6 +69,12 @@ router.post("/", async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: `Minimum withdrawal is ${MINIMUM_COIN_WITHDRAWAL} coins`,
+      });
+
+    if (amountCoins > MAXIMUM_COIN_WITHDRAWAL)
+      return res.status(400).json({
+        success: false,
+        message: `Maximum withdrawal is ${MAXIMUM_COIN_WITHDRAWAL} coins`,
       });
 
     // Fetch user
