@@ -24,7 +24,7 @@ export async function sendTonTransaction(
   const { publicKey, secretKey } = await mnemonicToWalletKey(mnemonic);
   const walletContract = WalletContractV5R1.create({
     workchain: 0,
-    walletId: { networkGlobalId: -3 },
+    walletId: { networkGlobalId: -239 },
     publicKey,
   });
   const wallet = tonClient.open(walletContract);
