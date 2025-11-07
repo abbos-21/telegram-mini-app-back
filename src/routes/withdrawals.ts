@@ -111,7 +111,8 @@ router.post("/", async (req: Request, res: Response) => {
 
       bot.telegram.sendMessage(
         user.telegramId,
-        `Withdrawal of ${amountTon} TON to ${targetAddress} successful.`
+        `Withdrawal of <code>${amountTon}</code> TON to <code>${targetAddress}</code> successful.`,
+        { parse_mode: "HTML" }
       );
 
       return res.status(200).json({
