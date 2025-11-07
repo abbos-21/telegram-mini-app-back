@@ -39,8 +39,4 @@ export async function checkAndRewardReferrer(userId: number, newLevel: number) {
     where: { id: userId },
     data: { rewardedLevels: JSON.stringify(rewardedLevels) },
   });
-
-  console.log(
-    `✅ Referrer ${referralUser.referredById} received ${rewardAmount} coins for referral ${userId} reaching level ${newLevel}`
-  );
 }

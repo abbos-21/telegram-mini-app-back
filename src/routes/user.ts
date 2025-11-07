@@ -5,33 +5,25 @@ import { BOT_USERNAME } from "../config/env";
 import { REFERRAL_REWARDS } from "../config/game";
 
 const router = express.Router();
-
 router.use(authenticate);
 
-router.get("/me", async (req, res) => {
+router.get("/me", async (req: Request, res: Response) => {
   try {
-    if (!req.user?.id) {
+    if (!req.user?.id)
       return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: req.user.id },
-    });
-
-    if (!dbUser) {
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user)
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
-    }
 
-    return res.json({
+    return res.status(200).json({
       success: true,
-      data: {
-        user: dbUser,
-      },
+      data: { user },
     });
   } catch (error) {
-    console.error("Error fetching user data:", error);
+    console.error("User fetch error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -52,15 +44,13 @@ router.get("/invite-link", async (req: Request, res: Response) => {
   });
 });
 
-router.get("/referrals", authenticate, async (req, res) => {
+router.get("/referrals", async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
+    if (!req.user?.id)
       return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
 
     const referrals = await prisma.user.findMany({
-      where: { referredById: userId },
+      where: { referredById: req.user.id },
       select: {
         id: true,
         telegramId: true,
@@ -73,12 +63,14 @@ router.get("/referrals", authenticate, async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
-    const { referralEarnings } = (await prisma.user.findUnique({
-      where: { id: userId },
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
       select: { referralEarnings: true },
-    })) || { referralEarnings: 0 };
+    });
 
-    return res.json({
+    const referralEarnings = user?.referralEarnings || 0;
+
+    return res.status(200).json({
       success: true,
       data: {
         count: referrals.length,
@@ -88,7 +80,7 @@ router.get("/referrals", authenticate, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Get referrals error:", error);
+    console.error("Referrals fetch error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",

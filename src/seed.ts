@@ -6,7 +6,6 @@ import { faker } from "@faker-js/faker";
 const prisma = new PrismaClient();
 
 async function main() {
-  // Get the user with id 1
   const user = await prisma.user.findUnique({
     where: {
       id: 1,
@@ -18,9 +17,8 @@ async function main() {
     return;
   }
 
-  // Create a fake withdrawal for the user
-  const amountCoins = faker.number.int({ min: 50, max: 500 }); // Use faker.number.int() for random integer
-  const amountTon = amountCoins / 10; // Convert coins to TON using the same conversion rate as in your code
+  const amountCoins = faker.number.int({ min: 50, max: 500 });
+  const amountTon = amountCoins / 10;
   const targetAddress = faker.finance.ethereumAddress();
 
   const withdrawal = await prisma.withdrawal.create({
@@ -29,8 +27,8 @@ async function main() {
       amountCoins,
       amountTon,
       targetAddress,
-      status: "PENDING", // You can change this to 'COMPLETED' or 'FAILED' if needed
-      txHash: faker.string.uuid(), // Use faker.string.uuid() to generate a random UUID
+      status: "PENDING",
+      txHash: faker.string.uuid(),
       errorMessage: faker.lorem.sentence(),
     },
   });
@@ -38,7 +36,6 @@ async function main() {
   console.log("Fake withdrawal created:", withdrawal);
 }
 
-// Call the main function to seed the database
 main()
   .catch((e) => {
     console.error(e);

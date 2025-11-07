@@ -1,10 +1,17 @@
 import express, { Request, Response } from "express";
 import prisma from "../prisma";
 import { authenticate } from "../middleware/authenticate";
-import { UPGRADABLES, UPGRADE_COSTS } from "../config/game";
+import {
+  UPGRADABLES,
+  UPGRADABLES_MAX_LEVEL,
+  UPGRADE_COSTS,
+} from "../config/game";
 
 const router = express.Router();
 router.use(authenticate);
+
+const err = (res: Response, status: number, msg: string) =>
+  res.status(status).json({ success: false, message: msg });
 
 const upgradeMap = {
   wealth: {
@@ -32,171 +39,111 @@ const upgradeMap = {
 const upgradeDescriptions = {
   wealth: {
     description: "Coin capacity",
-    details: "Increase coin storage to accumulate more before collecting.",
+    details: "Store more before collecting.",
     effectLabel: "Capacity",
     unit: "coins",
   },
   work: {
     description: "Coin mining",
-    details: "Increase mining speed to earn more coins per second.",
+    details: "Earn more per second.",
     effectLabel: "Income",
-    unit: "coins/second",
+    unit: "coins/s",
   },
   food: {
     description: "Energy tank",
-    details: "Increase Energy tank for longer work without refilling.",
+    details: "Work longer before refill.",
     effectLabel: "Work time",
-    unit: "min.",
+    unit: "min",
   },
   immune: {
     description: "Immune strength",
-    details: "Improve disease resistance. Higher level = fewer daily damages.",
-    effectLabel: "Withstand diseases",
+    details: "Resist more damage.",
+    effectLabel: "Durability",
     unit: "HP",
   },
 };
 
 router.get("/status", async (req: Request, res: Response) => {
-  if (!req.user?.id)
-    return res.status(401).json({ success: false, message: "Unauthorized" });
+  const id = req.user?.id;
+  if (!id) return err(res, 401, "Unauthorized");
 
-  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-  if (!user)
-    return res.status(404).json({ success: false, message: "User not found" });
-
-  const maxLevel = 13;
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) return err(res, 404, "User not found");
 
   const status = Object.entries(upgradeMap).map(([name, meta]) => {
-    const currentLevel = (user as any)[meta.levelField];
-    const nextLevel = currentLevel + 1;
+    const current = (user as any)[meta.levelField];
+    const next = current + 1;
     const key = meta.key;
     const { description, details, effectLabel, unit } =
       upgradeDescriptions[name as keyof typeof upgradeDescriptions];
-
     let nextValue =
-      nextLevel <= maxLevel ? (UPGRADABLES as any)[key][nextLevel] : null;
+      next <= UPGRADABLES_MAX_LEVEL ? (UPGRADABLES as any)[key][next] : null;
     const cost =
-      nextLevel <= maxLevel ? (UPGRADE_COSTS as any)[key][currentLevel] : null;
-
+      next <= UPGRADABLES_MAX_LEVEL
+        ? (UPGRADE_COSTS as any)[key][current]
+        : null;
     let currentValue = (user as any)[meta.valueField];
-
     if (name === "food" || name === "immune") {
       currentValue = Math.round(currentValue / 60);
       if (nextValue) nextValue = Math.round(nextValue / 60);
     }
-
-    let effect = nextValue
-      ? `${effectLabel}: ${currentValue} -> ${nextValue} ${unit || ""}`
-      : `${effectLabel}: Max level reached`;
-
+    const effect = nextValue
+      ? `${effectLabel}: ${currentValue} → ${nextValue} ${unit}`
+      : `${effectLabel}: Max level`;
     return {
       name,
-      level: currentLevel,
-      maxLevel,
+      level: current,
+      UPGRADABLES_MAX_LEVEL,
       cost,
-      canUpgrade: nextLevel <= maxLevel,
+      canUpgrade: next <= UPGRADABLES_MAX_LEVEL,
       effect,
       description,
       details,
     };
   });
 
-  return res.status(200).json({
-    success: true,
-    data: { status },
-  });
+  res.json({ success: true, data: { status } });
 });
 
 router.post("/:name", async (req: Request, res: Response) => {
-  if (!req.user?.id)
-    return res.status(401).json({ success: false, message: "Unauthorized" });
+  const id = req.user?.id;
+  if (!id) return err(res, 401, "Unauthorized");
 
   const { name } = req.params;
   const meta = upgradeMap[name as keyof typeof upgradeMap];
-  if (!meta)
-    return res
-      .status(400)
-      .json({ success: false, message: "Invalid upgrade name" });
+  if (!meta) return err(res, 400, "Invalid upgrade");
 
-  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-  if (!user)
-    return res.status(404).json({ success: false, message: "User not found" });
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) return err(res, 404, "User not found");
 
-  const currentLevel = (user as any)[meta.levelField];
-  const nextLevel = currentLevel + 1;
-  const maxLevel = 13;
+  const current = (user as any)[meta.levelField];
+  const next = current + 1;
 
-  if (currentLevel >= maxLevel) {
-    return res
-      .status(403)
-      .json({ success: false, message: "Already at max level" });
-  }
+  if (current >= UPGRADABLES_MAX_LEVEL) return err(res, 403, "Max level");
 
   const key = meta.key;
+  const costs = (UPGRADE_COSTS as any)[key];
+  const upgrades = (UPGRADABLES as any)[key];
+  if (!costs || !upgrades) return err(res, 500, "Config error");
 
-  // ✅ Get config data
-  const costArray = (UPGRADE_COSTS as any)[key];
-  const upgradableMap = (UPGRADABLES as any)[key];
+  const cost = costs[current];
+  const newValue = upgrades[next];
+  if (user.coins < cost) return err(res, 403, "Not enough coins");
 
-  // ✅ Ensure both exist
-  if (!costArray || !upgradableMap) {
-    return res.status(500).json({
-      success: false,
-      message: "Upgrade data misconfigured",
-    });
-  }
-
-  // ✅ Use currentLevel as index (cost array), nextLevel as key (object)
-  const cost = costArray[currentLevel];
-  const newValue = upgradableMap[nextLevel];
-
-  if (typeof cost !== "number" || isNaN(cost)) {
-    return res.status(400).json({
-      success: false,
-      message: `Invalid cost at level ${currentLevel} for ${name}`,
-    });
-  }
-
-  if (typeof newValue !== "number" || isNaN(newValue)) {
-    return res.status(400).json({
-      success: false,
-      message: `Invalid upgrade value for ${name} at level ${nextLevel}`,
-    });
-  }
-
-  // ✅ Ensure user has enough coins and not zero
-  if (user.coins <= 0 || user.coins < cost) {
-    return res
-      .status(403)
-      .json({ success: false, message: "Not enough coins to upgrade" });
-  }
-
-  // ✅ Prepare update data
   const data: any = {
     coins: user.coins - cost,
-    [meta.levelField]: nextLevel,
+    [meta.levelField]: next,
     [meta.valueField]: newValue,
   };
-
-  // ✅ Sync current stats if related
   if (name === "food") data.currentEnergy = newValue;
   if (name === "immune") data.currentHealth = newValue;
 
-  // ✅ Update user
-  const updatedUser = await prisma.user.update({
-    where: { id: user.id },
-    data,
-  });
+  const updated = await prisma.user.update({ where: { id }, data });
 
-  // ✅ Respond
-  return res.status(200).json({
+  res.json({
     success: true,
-    message: `${name} upgraded to level ${nextLevel}`,
-    data: {
-      user: updatedUser,
-      spent: cost,
-      newValue,
-    },
+    message: `${name} upgraded to L${next}`,
+    data: { user: updated, spent: cost, newValue },
   });
 });
 

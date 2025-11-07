@@ -40,18 +40,6 @@ app.use("/api", apiRouter);
 // io.use(socketAuthMiddleware);
 
 // io.on("connection", (socket: AuthenticatedSocket) => {
-//   console.log(
-//     `🟢 WebSocket connected: ${socket.id}. User: ${socket.user?.username}`
-//   );
-
-//   socket.on("disconnect", () => {
-//     console.log(
-//       `🔴 WebSocket disconnected: ${socket.id}. User: ${socket.user?.username}`
-//     );
-//   });
-// });
-
-// io.on("connection", (socket: AuthenticatedSocket) => {
 //   const user = socket.user;
 //   if (!user) return;
 

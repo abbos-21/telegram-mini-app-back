@@ -1,11 +1,5 @@
 import { mnemonicToWalletKey } from "@ton/crypto";
-import {
-  comment,
-  internal,
-  toNano,
-  TonClient,
-  WalletContractV5R1,
-} from "@ton/ton";
+import { internal, toNano, TonClient, WalletContractV5R1 } from "@ton/ton";
 import { SendMode } from "@ton/core";
 import {
   TON_API_ENDPOINT,

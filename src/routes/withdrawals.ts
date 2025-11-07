@@ -9,21 +9,15 @@ import {
 import { sendTonTransaction } from "../services/tonService";
 
 const router = express.Router();
-
 router.use(authenticate);
 
-/**
- * GET /withdrawals/history
- * Return user’s past withdrawals
- */
 router.get("/history", async (req: Request, res: Response) => {
   try {
-    const userId = req.user?.id;
-    if (!userId)
+    if (!req.user?.id)
       return res.status(401).json({ success: false, message: "Unauthorized" });
 
     const withdrawals = await prisma.withdrawal.findMany({
-      where: { userId },
+      where: { userId: req.user.id },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -38,19 +32,19 @@ router.get("/history", async (req: Request, res: Response) => {
       },
     });
 
-    return res.json({ success: true, data: { withdrawals } });
+    return res.status(200).json({
+      success: true,
+      data: { withdrawals },
+    });
   } catch (error) {
-    console.error("Error fetching withdrawal history:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal server error" });
+    console.error("Withdrawal history error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
   }
 });
 
-/**
- * POST /withdrawals
- * Create a new withdrawal request and perform TON transfer
- */
 router.post("/", async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -77,7 +71,6 @@ router.post("/", async (req: Request, res: Response) => {
         message: `Maximum withdrawal is ${MAXIMUM_COIN_WITHDRAWAL} coins`,
       });
 
-    // Fetch user
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user)
       return res
@@ -90,10 +83,8 @@ router.post("/", async (req: Request, res: Response) => {
         message: "Insufficient balance",
       });
 
-    // Convert coins to TON
     const amountTon = amountCoins / COIN_TO_TON_RATE;
 
-    // Create pending withdrawal entry
     const withdrawal = await prisma.withdrawal.create({
       data: {
         userId,
@@ -104,31 +95,27 @@ router.post("/", async (req: Request, res: Response) => {
       },
     });
 
-    // Try sending TON
     try {
       await sendTonTransaction(targetAddress, amountTon);
 
-      // Update withdrawal as completed
       await prisma.withdrawal.update({
         where: { id: withdrawal.id },
         data: { status: "COMPLETED" },
       });
 
-      // Deduct user coins
       await prisma.user.update({
         where: { id: userId },
         data: { coins: { decrement: amountCoins } },
       });
 
-      return res.json({
+      return res.status(200).json({
         success: true,
         message: "Withdrawal completed successfully",
         data: { amountTon, targetAddress },
       });
     } catch (txError: any) {
-      console.error("Withdrawal transaction failed:", txError);
+      console.error("TON transaction failed:", txError);
 
-      // Update withdrawal with failure info
       await prisma.withdrawal.update({
         where: { id: withdrawal.id },
         data: {

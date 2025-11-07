@@ -111,6 +111,8 @@ export const UPGRADE_COSTS = {
   ],
 };
 
+export const UPGRADABLES_MAX_LEVEL = 13;
+
 export const COIN_TO_TON_RATE = 220000;
 export const MINIMUM_COIN_WITHDRAWAL = 2200;
 export const MAXIMUM_COIN_WITHDRAWAL = 3300;

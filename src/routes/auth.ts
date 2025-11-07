@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { verifyTelegramAuth } from "../lib/verifyTelegramAuth";
 import prisma from "../prisma";
@@ -6,17 +6,15 @@ import { JWT_SECRET } from "../config/env";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: Request, res: Response) => {
   try {
     const { initData, ref } = req.body;
 
     const { valid, user } = verifyTelegramAuth(initData);
-    if (!valid || !user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid Telegram data",
-      });
-    }
+    if (!valid || !user)
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid Telegram data" });
 
     let existingUser = await prisma.user.findUnique({
       where: { telegramId: String(user.id) },
@@ -29,18 +27,16 @@ router.post("/", async (req, res) => {
 
       if (ref.startsWith("ref_")) {
         const userId = parseInt(ref.replace("ref_", ""), 10);
-        if (!isNaN(userId)) {
+        if (!isNaN(userId))
           referrer = await prisma.user.findUnique({ where: { id: userId } });
-        }
       } else {
         referrer = await prisma.user.findUnique({
           where: { telegramId: String(ref) },
         });
       }
 
-      if (referrer && referrer.telegramId !== String(user.id)) {
+      if (referrer && referrer.telegramId !== String(user.id))
         referredById = referrer.id;
-      }
     }
 
     const updateFields = {
@@ -51,28 +47,22 @@ router.post("/", async (req, res) => {
       isBot: user.is_bot || false,
     };
 
-    let dbUser;
+    const dbUser = existingUser
+      ? await prisma.user.update({
+          where: { telegramId: String(user.id) },
+          data: updateFields,
+        })
+      : await prisma.user.create({
+          data: {
+            telegramId: String(user.id),
+            ...updateFields,
+            ...(referredById ? { referredById } : {}),
+          },
+        });
 
-    if (existingUser) {
-      dbUser = await prisma.user.update({
-        where: { telegramId: String(user.id) },
-        data: updateFields,
-      });
-    } else {
-      dbUser = await prisma.user.create({
-        data: {
-          telegramId: String(user.id),
-          ...updateFields,
-          ...(referredById ? { referredById } : {}),
-        },
-      });
-    }
+    const token = jwt.sign({ id: dbUser.id }, JWT_SECRET, { expiresIn: "7d" });
 
-    const token = jwt.sign({ id: dbUser.id }, JWT_SECRET, {
-      expiresIn: "7d",
-    });
-
-    return res.json({
+    return res.status(200).json({
       success: true,
       data: { token, user: dbUser },
     });
