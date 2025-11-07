@@ -1,7 +1,11 @@
 import express, { Request, Response } from "express";
 import prisma from "../prisma";
 import { authenticate } from "../middleware/authenticate";
-import { UPGRADABLES, UPGRADE_COSTS } from "../config/game";
+import {
+  UPGRADABLES,
+  UPGRADABLES_MAX_LEVEL,
+  UPGRADE_COSTS,
+} from "../config/game";
 
 const router = express.Router();
 router.use(authenticate);
@@ -66,15 +70,18 @@ router.get("/status", async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return err(res, 404, "User not found");
 
-  const maxLevel = 13;
   const status = Object.entries(upgradeMap).map(([name, meta]) => {
     const current = (user as any)[meta.levelField];
     const next = current + 1;
     const key = meta.key;
     const { description, details, effectLabel, unit } =
       upgradeDescriptions[name as keyof typeof upgradeDescriptions];
-    let nextValue = next <= maxLevel ? (UPGRADABLES as any)[key][next] : null;
-    const cost = next <= maxLevel ? (UPGRADE_COSTS as any)[key][current] : null;
+    let nextValue =
+      next <= UPGRADABLES_MAX_LEVEL ? (UPGRADABLES as any)[key][next] : null;
+    const cost =
+      next <= UPGRADABLES_MAX_LEVEL
+        ? (UPGRADE_COSTS as any)[key][current]
+        : null;
     let currentValue = (user as any)[meta.valueField];
     if (name === "food" || name === "immune") {
       currentValue = Math.round(currentValue / 60);
@@ -86,9 +93,9 @@ router.get("/status", async (req, res) => {
     return {
       name,
       level: current,
-      maxLevel,
+      UPGRADABLES_MAX_LEVEL,
       cost,
-      canUpgrade: next <= maxLevel,
+      canUpgrade: next <= UPGRADABLES_MAX_LEVEL,
       effect,
       description,
       details,
@@ -111,8 +118,8 @@ router.post("/:name", async (req, res) => {
 
   const current = (user as any)[meta.levelField];
   const next = current + 1;
-  const maxLevel = 13;
-  if (current >= maxLevel) return err(res, 403, "Max level");
+
+  if (current >= UPGRADABLES_MAX_LEVEL) return err(res, 403, "Max level");
 
   const key = meta.key;
   const costs = (UPGRADE_COSTS as any)[key];
