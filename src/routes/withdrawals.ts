@@ -7,6 +7,7 @@ import {
   MINIMUM_COIN_WITHDRAWAL,
 } from "../config/game";
 import { sendTonTransaction } from "../services/tonService";
+import { bot } from "../bot";
 
 const router = express.Router();
 router.use(authenticate);
@@ -103,10 +104,18 @@ router.post("/", async (req: Request, res: Response) => {
         data: { status: "COMPLETED" },
       });
 
-      await prisma.user.update({
+      const user = await prisma.user.update({
         where: { id: userId },
         data: { coins: { decrement: amountCoins } },
       });
+
+      bot.telegram.sendMessage(
+        user.telegramId,
+        `Withdrawal of **${amountTon} TON** to **${targetAddress}** successful.`,
+        {
+          parse_mode: "MarkdownV2",
+        }
+      );
 
       return res.status(200).json({
         success: true,
