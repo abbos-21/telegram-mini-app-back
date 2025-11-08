@@ -65,7 +65,7 @@ const upgradeDescriptions = {
   },
 };
 
-router.get("/status", async (req, res) => {
+router.get("/status", async (req: Request, res: Response) => {
   const id = req.user?.id;
   if (!id) return err(res, 401, "Unauthorized");
 
@@ -103,7 +103,7 @@ router.get("/status", async (req, res) => {
   res.json({ success: true, data: { status } });
 });
 
-router.post("/:name", async (req, res) => {
+router.post("/:name", async (req: Request, res: Response) => {
   const id = req.user?.id;
   if (!id) return err(res, 401, "Unauthorized");
 

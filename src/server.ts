@@ -1,4 +1,4 @@
-import express, { Response } from "express";
+import express, { Request, Response } from "express";
 import { PORT } from "./config/env";
 import cors from "cors";
 import http from "http";
@@ -15,7 +15,7 @@ export async function startServer() {
 
   bot.launch();
 
-  app.get("/", (res: Response) => {
+  app.get("/", (req: Request, res: Response) => {
     res.json("Hey, you just got hacked!");
   });
 

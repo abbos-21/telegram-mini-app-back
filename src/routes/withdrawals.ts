@@ -12,7 +12,7 @@ import { bot } from "../bot";
 const router = express.Router();
 router.use(authenticate);
 
-router.get("/data", async (res: Response) => {
+router.get("/data", async (req: Request, res: Response) => {
   try {
     const withdrawalData = {
       rate: COIN_TO_TON_RATE,
