@@ -53,6 +53,8 @@ model User {
   lastWheelSpin DateTime?
 
   withdrawals Withdrawal[]
+
+  subscriptions    String    @default("[]")
 }
 
 model Withdrawal {

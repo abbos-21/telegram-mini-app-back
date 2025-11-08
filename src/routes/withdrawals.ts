@@ -12,6 +12,27 @@ import { bot } from "../bot";
 const router = express.Router();
 router.use(authenticate);
 
+router.get("/data", async (res: Response) => {
+  try {
+    const withdrawalData = {
+      rate: COIN_TO_TON_RATE,
+      min: MINIMUM_COIN_WITHDRAWAL,
+      max: MAXIMUM_COIN_WITHDRAWAL,
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: { withdrawalData },
+    });
+  } catch (error) {
+    console.error("Withdrawal data error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
 router.get("/history", async (req: Request, res: Response) => {
   try {
     if (!req.user?.id)
@@ -111,7 +132,9 @@ router.post("/", async (req: Request, res: Response) => {
 
       bot.telegram.sendMessage(
         user.telegramId,
-        `Withdrawal of <code>${amountTon}</code> TON to <code>${targetAddress}</code> successful.`,
+        `Withdrawal of <code>${amountTon.toFixed(
+          2
+        )}</code> TON to <code>${targetAddress}</code> successful.`,
         { parse_mode: "HTML" }
       );
 

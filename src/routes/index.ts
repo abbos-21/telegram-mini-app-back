@@ -5,6 +5,7 @@ import userRouter from "./user";
 import rewardRouter from "./reward";
 import upgradesRouter from "./upgrades";
 import withdrawalsRouter from "./withdrawals";
+import taskRouter from "./task";
 
 const router = express.Router();
 
@@ -14,5 +15,6 @@ router.use("/user", userRouter);
 router.use("/reward", rewardRouter);
 router.use("/upgrades", upgradesRouter);
 router.use("/withdrawals", withdrawalsRouter);
+router.use("/task", taskRouter);
 
 export default router;
