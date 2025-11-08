@@ -22,7 +22,7 @@ router.get("/data", async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      data: { withdrawalData },
+      data: { ...withdrawalData },
     });
   } catch (error) {
     console.error("Withdrawal data error:", error);
