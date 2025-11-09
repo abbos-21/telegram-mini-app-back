@@ -34,15 +34,15 @@ model User {
   lastMiningTick   DateTime?
   isMining         Boolean   @default(false)
   tempCoins        Float     @default(0)
-  vaultCapacity    Float     @default(36)
+  vaultCapacity    Float     @default(100)
 
   currentHealth    Float     @default(3600)
   maxHealth        Float     @default(3600)
 
-  currentEnergy    Float     @default(3600)
-  maxEnergy        Float     @default(3600)
+  currentEnergy    Float     @default(1800)
+  maxEnergy        Float     @default(1800)
 
-  healthPerSecond  Float     @default(0.5)
+  healthPerSecond  Float     @default(1)
   energyPerSecond  Float     @default(1)
 
   vaultLevel       Int       @default(1)
@@ -65,7 +65,7 @@ model Withdrawal {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  status        String    @default("PENDING") // PENDING, COMPLETED, FAILED
+  status        String    @default("PENDING")
   
   amountCoins   Float
   amountTon     Float
