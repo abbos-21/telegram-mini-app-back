@@ -1,6 +1,6 @@
-export const LEVEL_THRESHOLDS = [
-  0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500, 5500, 6600, 7800,
-];
+// export const LEVEL_THRESHOLDS = [
+//   0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500, 5500, 6600, 7800,
+// ];
 
 export const REFERRAL_REWARDS = {
   2: 10,

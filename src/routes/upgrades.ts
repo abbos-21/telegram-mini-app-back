@@ -6,6 +6,8 @@ import {
   UPGRADABLES_MAX_LEVEL,
   UPGRADE_COSTS,
 } from "../config/game";
+import { getLevelByUpgradables } from "../lib/levelUtils";
+import { checkAndRewardReferrer } from "../lib/referralReward";
 
 const router = express.Router();
 router.use(authenticate);
@@ -137,6 +139,17 @@ router.post("/:name", async (req: Request, res: Response) => {
   if (name === "immune") data.currentHealth = newValue;
 
   const updated = await prisma.user.update({ where: { id }, data });
+
+  const level = getLevelByUpgradables(
+    updated.vaultLevel,
+    updated.miningRateLevel,
+    updated.energyLevel,
+    updated.healthLevel
+  );
+  if (level > updated.level) {
+    await prisma.user.update({ where: { id }, data: { level } });
+    await checkAndRewardReferrer(id, level);
+  }
 
   res.json({
     success: true,
