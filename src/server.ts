@@ -5,6 +5,7 @@ import http from "http";
 import { bot } from "./bot";
 
 import apiRouter from "./routes";
+import { checkIfBotIsAdmin } from "./bot/helperFunctions";
 
 export async function startServer() {
   const app = express();
@@ -14,6 +15,7 @@ export async function startServer() {
   app.use(express.json());
 
   bot.launch();
+  await checkIfBotIsAdmin();
 
   app.get("/", (req: Request, res: Response) => {
     res.json("Hey, you just got hacked!");

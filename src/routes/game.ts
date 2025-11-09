@@ -22,12 +22,23 @@ router.post("/start-mining", async (req: Request, res: Response) => {
   let user = await prisma.user.findUnique({ where: { id } });
   if (!user) return error(res, 404, "User not found");
   if (user.isMining) return error(res, 400, "Already mining");
+
+  // Prevent starting if health is 0
+  if (user.currentHealth <= 0) {
+    if (user.tempCoins > 0) {
+      user = await prisma.user.update({
+        where: { id },
+        data: { tempCoins: 0 },
+      });
+    }
+    return error(res, 403, "Health depleted — cannot mine");
+  }
+
   if (!user.currentHealth && user.tempCoins)
     user = await prisma.user.update({ where: { id }, data: { tempCoins: 0 } });
   if (user.tempCoins >= user.vaultCapacity)
     return error(res, 403, "Vault full");
   if (user.currentEnergy <= 0) return error(res, 403, "No energy");
-  if (user.currentHealth <= 0) return error(res, 403, "No health");
 
   const updated = await prisma.user.update({
     where: { id },
@@ -51,19 +62,30 @@ router.post("/sync", async (req: Request, res: Response) => {
 
   const now = new Date();
   const elapsed = (now.getTime() - user.lastMiningTick.getTime()) / 1000;
-  const vaultTime = (user.vaultCapacity - user.tempCoins) / user.miningRate;
+
+  // Time until energy or health runs out
   const energyTime = user.currentEnergy / user.energyPerSecond;
   const healthTime = user.currentHealth / user.healthPerSecond;
-  const activeSeconds = Math.min(elapsed, vaultTime, energyTime, healthTime);
+  const maxDrainSeconds = Math.min(elapsed, energyTime, healthTime);
 
-  const mined = activeSeconds * user.miningRate;
+  // Time until vault is full (for coin mining only)
+  const coinsCanBeMinedFor =
+    user.miningRate > 0
+      ? (user.vaultCapacity - user.tempCoins) / user.miningRate
+      : 0;
+  const miningSeconds = Math.min(maxDrainSeconds, coinsCanBeMinedFor);
+
+  // Calculate mined coins (stops at vault capacity)
+  const mined = miningSeconds * user.miningRate;
   const newTemp = Math.min(user.tempCoins + mined, user.vaultCapacity);
+
+  // Drain energy & health FULLY even if vault is full
   const newEnergy = Math.max(
-    user.currentEnergy - activeSeconds * user.energyPerSecond,
+    user.currentEnergy - maxDrainSeconds * user.energyPerSecond,
     0
   );
   const newHealth = Math.max(
-    user.currentHealth - activeSeconds * user.healthPerSecond,
+    user.currentHealth - maxDrainSeconds * user.healthPerSecond,
     0
   );
 
@@ -78,15 +100,11 @@ router.post("/sync", async (req: Request, res: Response) => {
     stop = true;
     msg = "Health 0, coins burned";
   }
-  if (newTemp >= user.vaultCapacity) {
-    stop = true;
-    msg = "Vault full";
-  }
 
   const updated = await prisma.user.update({
     where: { id },
     data: {
-      tempCoins: newHealth <= 0 ? 0 : newTemp,
+      tempCoins: newHealth <= 0 ? 0 : newTemp, // Burn coins if health hits 0
       currentEnergy: newEnergy,
       currentHealth: newHealth,
       lastMiningTick: now,
@@ -103,8 +121,21 @@ router.post("/collect-coins", async (req: Request, res: Response) => {
 
   let user = await prisma.user.findUnique({ where: { id } });
   if (!user) return error(res, 404, "User not found");
-  if (user.currentHealth <= 0)
+
+  // Case 1: Health = 0 AND coins exist → burn them now
+  if (user.currentHealth <= 0 && user.tempCoins > 0) {
+    user = await prisma.user.update({
+      where: { id },
+      data: { tempCoins: 0 },
+    });
     return error(res, 403, "Health 0 — coins burned");
+  }
+
+  // Case 2: Health = 0, but no coins → already burned
+  if (user.currentHealth <= 0) {
+    return error(res, 403, "Health depleted — no coins to collect");
+  }
+
   if (user.tempCoins <= 0) return error(res, 403, "No coins");
   if (user.tempCoins < user.vaultCapacity * 0.1)
     return error(res, 403, "Need ≥10% vault");
@@ -133,7 +164,7 @@ router.post("/collect-coins", async (req: Request, res: Response) => {
       data: { currentHealth: 0 },
     });
 
-  if (user.currentEnergy && user.currentHealth)
+  if (user.currentEnergy > 0 && user.currentHealth > 0)
     user = await prisma.user.update({
       where: { id },
       data: { isMining: true, lastMiningTick: new Date() },
