@@ -52,7 +52,7 @@ router.post("/check-subscription", async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      message: "Nice job! Successfully received 100 coins",
+      message: `Nice job! Successfully received ${REWARD_FOR_SUBSCRIPTION} coins`,
     });
   } catch (error) {
     console.error("Error checking subscription:", error);
