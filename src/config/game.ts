@@ -234,8 +234,8 @@ export const UPGRADE_COSTS = {
 
 export const UPGRADABLES_MAX_LEVEL = 13;
 
-export const COIN_TO_TON_RATE = 220000;
-export const MINIMUM_COIN_WITHDRAWAL = 2200;
-export const MAXIMUM_COIN_WITHDRAWAL = 22000;
+export const COIN_TO_TON_RATE = 135000;
+export const MINIMUM_COIN_WITHDRAWAL = 1000;
+export const MAXIMUM_COIN_WITHDRAWAL = 135000;
 export const CHANNELS = ["@brunoplay_news"];
 export const REWARD_FOR_SUBSCRIPTION = 20;
