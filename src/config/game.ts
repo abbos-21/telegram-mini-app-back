@@ -134,7 +134,7 @@ export const REFERRAL_REWARDS = {
   13: 2300000,
 };
 
-export const SPIN_WHEEL_COOLDOWN_HOURS = 1;
+export const SPIN_WHEEL_COOLDOWN_HOURS = 1 / 6;
 
 export const SPIN_WHEEL_PROBABILITY_DATA = {
   5: 90.0,
