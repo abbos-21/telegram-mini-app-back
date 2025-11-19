@@ -272,26 +272,41 @@ router.get("/spin-wheel/status", async (req: Request, res: Response) => {
 
   const now = new Date();
   let canSpin = true;
-  let remMs = 0;
+  let remainingMs = 0;
 
   if (user.lastWheelSpin) {
-    const diff = now.getTime() - new Date(user.lastWheelSpin).getTime();
-    const cooldown = SPIN_WHEEL_COOLDOWN_HOURS * 3600000;
-    if (diff < cooldown) {
+    const lastSpinTime = new Date(user.lastWheelSpin).getTime();
+    const diff = now.getTime() - lastSpinTime;
+    const cooldownMs = SPIN_WHEEL_COOLDOWN_HOURS * 3600000;
+
+    if (diff < cooldownMs) {
       canSpin = false;
-      remMs = cooldown - diff;
+      remainingMs = cooldownMs - diff;
     }
   }
 
-  const hrs = remMs / 3600000;
-  const h = Math.floor(hrs);
-  const m = Math.floor((hrs - h) * 60);
+  let remaining = null;
+  if (!canSpin && remainingMs > 0) {
+    const totalSeconds = Math.floor(remainingMs / 1000);
+
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    remaining = {
+      hours,
+      minutes,
+      seconds,
+      totalSeconds, // optional: full countdown in seconds
+      remainingMs, // optional: raw milliseconds
+    };
+  }
 
   res.json({
     success: true,
     data: {
       canSpin,
-      remaining: canSpin ? null : { hours: h, minutes: m, remainingHours: hrs },
+      remaining, // null if can spin, object if cooldown active
       lastWheelSpin: user.lastWheelSpin,
     },
   });
