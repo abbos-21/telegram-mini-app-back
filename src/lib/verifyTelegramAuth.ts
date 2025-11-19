@@ -1,35 +1,49 @@
-import CryptoJS from "crypto-js";
+import { validate, parse } from "@tma.js/init-data-node";
 import { BOT_TOKEN } from "../config/env";
 
 export function verifyTelegramAuth(initData: string): {
   valid: boolean;
-  user?: any;
+  user?: {
+    id: number;
+    first_name?: string;
+    last_name?: string;
+    username?: string;
+    language_code?: string;
+    is_premium?: boolean;
+    is_bot?: boolean;
+    [key: string]: any;
+  };
 } {
   if (!BOT_TOKEN) {
     throw new Error("BOT_TOKEN is missing in .env");
   }
 
-  const params = new URLSearchParams(initData);
-  const hash = params.get("hash");
-  if (!hash) return { valid: false };
+  if (!initData || typeof initData !== "string") {
+    return { valid: false };
+  }
 
-  params.delete("hash");
+  try {
+    validate(initData, BOT_TOKEN, {
+      expiresIn: 3600,
+    });
 
-  const sorted = Array.from(params.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([k, v]) => `${k}=${v}`)
-    .join("\n");
+    const parsed = parse(initData);
 
-  const secret = CryptoJS.HmacSHA256(BOT_TOKEN, "WebAppData");
+    if (!parsed.user) {
+      return { valid: false };
+    }
 
-  const computedHash = CryptoJS.HmacSHA256(sorted, secret).toString(
-    CryptoJS.enc.Hex
-  );
+    return {
+      valid: true,
+      user: parsed.user,
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      console.warn("Telegram initData validation failed:", error.message);
+    } else {
+      console.error("Unexpected error during Telegram validation:", error);
+    }
 
-  const valid = computedHash === hash;
-
-  const userData = Object.fromEntries(new URLSearchParams(initData));
-  const user = userData.user ? JSON.parse(userData.user) : undefined;
-
-  return { valid, user };
+    return { valid: false };
+  }
 }
