@@ -20,7 +20,7 @@ export async function startServer() {
       credentials: true,
     })
   );
-  app.options("*", cors());
+
   app.use(express.json());
 
   bot.launch();
