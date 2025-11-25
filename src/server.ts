@@ -14,8 +14,13 @@ export async function startServer() {
   const app = express();
   const server = http.createServer(app);
 
-  app.use(cors());
-
+  app.use(
+    cors({
+      origin: true,
+      credentials: true,
+    })
+  );
+  app.options("*", cors());
   app.use(express.json());
 
   bot.launch();
