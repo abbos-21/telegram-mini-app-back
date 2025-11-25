@@ -17,7 +17,16 @@ export async function startServer() {
   app.use(
     cors({
       origin: WEB_APP_URL,
-      methods: ["GET", "POST", "PUT", "DELETE"],
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      credentials: true,
+    })
+  );
+
+  app.options(
+    "*",
+    cors({
+      origin: WEB_APP_URL,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       credentials: true,
     })
   );
