@@ -14,23 +14,7 @@ export async function startServer() {
   const app = express();
   const server = http.createServer(app);
 
-  app.use(
-    cors({
-      origin: true,
-      credentials: true,
-    })
-  );
-
-  app.options("*", (req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,POST,PUT,DELETE,OPTIONS"
-    );
-    res.setHeader("Access-Control-Allow-Headers", "*");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.sendStatus(200);
-  });
+  app.use(cors());
 
   app.use(express.json());
 
