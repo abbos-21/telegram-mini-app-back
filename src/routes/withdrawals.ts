@@ -8,6 +8,7 @@ import {
 } from "../config/game";
 import { sendTonTransaction } from "../services/tonService";
 import { bot } from "../bot";
+import { getRealIp } from "../lib/ip";
 
 const router = express.Router();
 router.use(authenticate);
@@ -69,6 +70,7 @@ router.get("/history", async (req: Request, res: Response) => {
 
 router.post("/", async (req: Request, res: Response) => {
   try {
+    const clientIp = getRealIp(req);
     const userId = req.user?.id;
     const { targetAddress, amountCoins } = req.body;
 
@@ -118,11 +120,12 @@ router.post("/", async (req: Request, res: Response) => {
     });
 
     try {
+      const date = new Date();
       await sendTonTransaction(targetAddress, amountTon);
 
       await prisma.withdrawal.update({
         where: { id: withdrawal.id },
-        data: { status: "COMPLETED" },
+        data: { status: "COMPLETED", createdAt: date },
       });
 
       const user = await prisma.user.update({
@@ -137,6 +140,15 @@ router.post("/", async (req: Request, res: Response) => {
         )}</code> TON to <code>${targetAddress}</code> successful.`,
         { parse_mode: "HTML" }
       );
+
+      await prisma.action.create({
+        data: {
+          userId: userId,
+          type: "WITHDRAW",
+          ip: clientIp,
+          data: JSON.stringify({ amountTon, targetAddress }),
+        },
+      });
 
       return res.status(200).json({
         success: true,

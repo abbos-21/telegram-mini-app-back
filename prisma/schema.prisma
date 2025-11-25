@@ -54,6 +54,10 @@ model User {
 
   withdrawals Withdrawal[]
 
+  actions Action[]
+
+  isBlocked Boolean  @default(false)
+
   subscriptions    String    @default("[]")
 }
 
@@ -74,5 +78,15 @@ model Withdrawal {
   
   txHash        String?
   errorMessage  String?
+}
+
+model Action {
+  id            Int @id @default(autoincrement())
+  userId        Int
+  user          User      @relation(fields: [userId], references: [id])
+  type          String
+  ip            String
+  time          DateTime @default(now())
+  data          String
 }
 

@@ -14,6 +14,8 @@ export async function startServer() {
   const app = express();
   const server = http.createServer(app);
 
+  app.set("trust proxy", true);
+
   app.use(cors());
 
   app.use(express.json());
@@ -29,6 +31,16 @@ export async function startServer() {
   });
 
   app.use("/api", apiRouter);
+
+  app.get("/ip", (req: Request, res: Response) => {
+    res.json({
+      "req.ip": req.ip,
+      "req.ips": req.ips,
+      "x-forwarded-for": req.headers["x-forwarded-for"],
+      "cf-connecting-ip": req.headers["cf-connecting-ip"],
+      remoteAddress: req.socket.remoteAddress,
+    });
+  });
 
   server.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
