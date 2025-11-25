@@ -1,5 +1,5 @@
 import express, { Request, Response } from "express";
-import { PORT } from "./config/env";
+import { PORT, WEB_APP_URL } from "./config/env";
 import cors from "cors";
 import http from "http";
 import { bot } from "./bot";
@@ -14,14 +14,21 @@ export async function startServer() {
   const app = express();
   const server = http.createServer(app);
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: WEB_APP_URL,
+      methods: ["GET", "POST", "PUT", "DELETE"],
+      credentials: true,
+    })
+  );
+
   app.use(express.json());
 
   bot.launch();
   await checkIfBotIsAdmin();
-  await sendMessageToAllBotUsers(
-    "We are back online! Start earning coins and making money again!"
-  );
+  // await sendMessageToAllBotUsers(
+  //   "We are back online! Start earning coins and making money again!"
+  // );
 
   app.get("/", (req: Request, res: Response) => {
     res.json("Hey, you just got hacked!");
