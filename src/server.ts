@@ -5,7 +5,10 @@ import http from "http";
 import { bot } from "./bot";
 
 import apiRouter from "./routes";
-import { checkIfBotIsAdmin } from "./bot/helperFunctions";
+import {
+  checkIfBotIsAdmin,
+  sendMessageToAllBotUsers,
+} from "./bot/helperFunctions";
 
 export async function startServer() {
   const app = express();
@@ -16,6 +19,9 @@ export async function startServer() {
 
   bot.launch();
   await checkIfBotIsAdmin();
+  await sendMessageToAllBotUsers(
+    "We are back online! Start earning coins and making money again!"
+  );
 
   app.get("/", (req: Request, res: Response) => {
     res.json("Hey, you just got hacked!");

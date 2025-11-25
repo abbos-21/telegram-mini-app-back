@@ -1,5 +1,6 @@
 import { bot } from ".";
 import { CHANNELS } from "../config/game";
+import prisma from "../prisma";
 
 export async function checkIfBotIsAdmin(): Promise<boolean> {
   const botId = (await bot.telegram.getMe()).id;
@@ -48,4 +49,22 @@ export async function checkIfUserIsSubscribed(
     );
     return false;
   }
+}
+
+export async function sendMessageToAllBotUsers(message: string) {
+  const users = await prisma.user.findMany({ select: { telegramId: true } });
+
+  for (const user of users) {
+    const targetId = user.telegramId;
+
+    try {
+      await bot.telegram.sendMessage(targetId, message);
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    } catch (error: any) {
+      console.log(`⚠️ Failed to send to ${targetId}:`, error.message);
+    }
+  }
+
+  console.log("--- Broadcast Complete ---");
 }
