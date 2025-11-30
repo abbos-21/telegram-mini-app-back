@@ -1,13 +1,14 @@
 import express, { Request, Response } from "express";
 import prisma from "../prisma";
 import { authenticate } from "../middleware/authenticate";
-import {
-  ENERGY_PRICE,
-  HEALTH_PRICE,
-  SPIN_WHEEL_PROBABILITY_DATA,
-  SPIN_WHEEL_COOLDOWN_HOURS,
-} from "../config/game";
+// import {
+//   ENERGY_PRICE,
+//   HEALTH_PRICE,
+//   SPIN_WHEEL_PROBABILITY_DATA,
+//   SPIN_WHEEL_COOLDOWN_HOURS,
+// } from "../config/game";
 import { selectPrize } from "../lib/selectPrize";
+import { getSettings } from "../config/settings";
 
 const router = express.Router();
 router.use(authenticate);
@@ -194,6 +195,8 @@ router.post("/recover-energy", async (req: Request, res: Response) => {
 
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return error(res, 404, "User not found");
+  const settings = await getSettings();
+  const ENERGY_PRICE = settings.ENERGY_PRICE;
   if (user.coins < ENERGY_PRICE) return error(res, 403, "Not enough coins");
   if (user.currentEnergy === user.maxEnergy)
     return error(res, 403, "Full energy");
@@ -216,6 +219,8 @@ router.post("/recover-health", async (req: Request, res: Response) => {
 
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return error(res, 404, "User not found");
+  const settings = await getSettings();
+  const HEALTH_PRICE = settings.HEALTH_PRICE;
   if (user.coins < HEALTH_PRICE) return error(res, 403, "Not enough coins");
   if (user.currentHealth === user.maxHealth)
     return error(res, 403, "Full health");
@@ -239,6 +244,9 @@ router.post("/spin-wheel", async (req: Request, res: Response) => {
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return error(res, 404, "User not found");
 
+  const settings = await getSettings();
+  const SPIN_WHEEL_COOLDOWN_HOURS = settings.SPIN_WHEEL_COOLDOWN_HOURS;
+
   const now = new Date();
   if (user.lastWheelSpin) {
     const hours = (now.getTime() - +new Date(user.lastWheelSpin)) / 3600000;
@@ -250,10 +258,16 @@ router.post("/spin-wheel", async (req: Request, res: Response) => {
     }
   }
 
+  const SPIN_WHEEL_PROBABILITY_DATA = settings.SPIN_WHEEL_PROBABILITY_DATA;
+
   const prize = selectPrize(SPIN_WHEEL_PROBABILITY_DATA);
   const updated = await prisma.user.update({
     where: { id },
-    data: { coins: user.coins + prize, lastWheelSpin: now },
+    data: {
+      coins: user.coins + prize,
+      totalCoins: user.totalCoins + prize,
+      lastWheelSpin: now,
+    },
   });
 
   res.json({
@@ -270,6 +284,8 @@ router.get("/spin-wheel/status", async (req: Request, res: Response) => {
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return error(res, 404, "User not found");
 
+  const settings = await getSettings();
+  const SPIN_WHEEL_COOLDOWN_HOURS = settings.SPIN_WHEEL_COOLDOWN_HOURS;
   const now = new Date();
   let canSpin = true;
   let remainingMs = 0;

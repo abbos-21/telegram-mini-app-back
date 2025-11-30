@@ -1,13 +1,14 @@
 import express, { Request, Response } from "express";
 import prisma from "../prisma";
 import { authenticate } from "../middleware/authenticate";
-import {
-  UPGRADABLES,
-  UPGRADABLES_MAX_LEVEL,
-  UPGRADE_COSTS,
-} from "../config/game";
+// import {
+//   UPGRADABLES,
+//   UPGRADABLES_MAX_LEVEL,
+//   UPGRADE_COSTS,
+// } from "../config/game";
 import { getLevelByUpgradables } from "../lib/levelUtils";
 import { checkAndRewardReferrer } from "../lib/referralReward";
+import { getSettings } from "../config/settings";
 
 const router = express.Router();
 router.use(authenticate);
@@ -15,7 +16,7 @@ router.use(authenticate);
 const err = (res: Response, status: number, msg: string) =>
   res.status(status).json({ success: false, message: msg });
 
-const maxLevel = UPGRADABLES_MAX_LEVEL;
+// const maxLevel = UPGRADABLES_MAX_LEVEL;
 
 const upgradeMap = {
   wealth: {
@@ -74,6 +75,11 @@ router.get("/status", async (req: Request, res: Response) => {
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return err(res, 404, "User not found");
 
+  const settings = await getSettings();
+  const maxLevel = settings.UPGRADABLES_MAX_LEVEL;
+  const UPGRADABLES = settings.UPGRADABLES;
+  const UPGRADE_COSTS = settings.UPGRADE_COSTS;
+
   const status = Object.entries(upgradeMap).map(([name, meta]) => {
     const current = (user as any)[meta.levelField];
     const next = current + 1;
@@ -115,6 +121,11 @@ router.post("/:name", async (req: Request, res: Response) => {
 
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return err(res, 404, "User not found");
+
+  const settings = await getSettings();
+  const maxLevel = settings.UPGRADABLES_MAX_LEVEL;
+  const UPGRADABLES = settings.UPGRADABLES;
+  const UPGRADE_COSTS = settings.UPGRADE_COSTS;
 
   const current = (user as any)[meta.levelField];
   const next = current + 1;

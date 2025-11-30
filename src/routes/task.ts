@@ -2,7 +2,8 @@ import express, { Request, Response } from "express";
 import prisma from "../prisma";
 import { authenticate } from "../middleware/authenticate";
 import { checkIfUserIsSubscribed } from "../bot/helperFunctions";
-import { CHANNELS, REWARD_FOR_SUBSCRIPTION } from "../config/game";
+import { getSettings } from "../config/settings";
+// import { CHANNELS, REWARD_FOR_SUBSCRIPTION } from "../config/game";
 
 const router = express.Router();
 router.use(authenticate);
@@ -26,6 +27,9 @@ router.post("/check-subscription", async (req: Request, res: Response) => {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
+
+    const settings = await getSettings();
+    const REWARD_FOR_SUBSCRIPTION = settings.REWARD_FOR_SUBSCRIPTION;
 
     const isSubscribed = await checkIfUserIsSubscribed(
       user.telegramId,
@@ -74,6 +78,9 @@ router.get("/", async (req: Request, res: Response) => {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
+
+    const settings = await getSettings();
+    const CHANNELS = settings.CHANNELS;
 
     const userSubscriptionsArray = JSON.parse(user.subscriptions);
     const userSubscriptionsArraySet = new Set(userSubscriptionsArray);

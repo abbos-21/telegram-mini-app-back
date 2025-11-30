@@ -12,3 +12,4 @@ export const TASK_REWARD_SECRET = process.env.TASK_REWARD_SECRET!;
 export const HOT_WALLET_MNEMONIC = process.env.HOT_WALLET_MNEMONIC!;
 export const TON_API_ENDPOINT = process.env.TON_API_ENDPOINT!;
 export const TON_API_TOKEN = process.env.TON_API_TOKEN!;
+export const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET!;

@@ -1,8 +1,12 @@
 import prisma from "../prisma";
-import { REFERRAL_REWARDS } from "../config/game";
+// import { REFERRAL_REWARDS } from "../config/game";
+import { getSettings } from "../config/settings";
 
 export async function checkAndRewardReferrer(userId: number, newLevel: number) {
   if (newLevel < 2) return;
+
+  const settings = await getSettings();
+  const REFERRAL_REWARDS = settings.REFERRAL_REWARDS;
 
   const referralUser = await prisma.user.findUnique({
     where: { id: userId },

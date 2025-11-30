@@ -2,7 +2,8 @@ import express, { Request, Response } from "express";
 import prisma from "../prisma";
 import { authenticate } from "../middleware/authenticate";
 import { BOT_USERNAME } from "../config/env";
-import { REFERRAL_REWARDS } from "../config/game";
+import { getSettings } from "../config/settings";
+// import { REFERRAL_REWARDS } from "../config/game";
 
 const router = express.Router();
 router.use(authenticate);
@@ -48,6 +49,9 @@ router.get("/referrals", async (req: Request, res: Response) => {
   try {
     if (!req.user?.id)
       return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    const settings = await getSettings();
+    const REFERRAL_REWARDS = settings.REFERRAL_REWARDS;
 
     const referrals = await prisma.user.findMany({
       where: { referredById: req.user.id },

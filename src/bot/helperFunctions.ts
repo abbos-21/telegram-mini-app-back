@@ -1,10 +1,14 @@
 import { bot } from ".";
-import { CHANNELS } from "../config/game";
+import { getSettings } from "../config/settings";
+// import { CHANNELS } from "../config/game";
 import prisma from "../prisma";
 
 export async function checkIfBotIsAdmin(): Promise<boolean> {
   const botId = (await bot.telegram.getMe()).id;
   const failures: string[] = [];
+
+  const settings = await getSettings();
+  const CHANNELS = settings.CHANNELS;
 
   for (const channel of CHANNELS) {
     try {

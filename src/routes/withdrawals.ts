@@ -1,20 +1,26 @@
 import express, { Request, Response } from "express";
 import prisma from "../prisma";
 import { authenticate } from "../middleware/authenticate";
-import {
-  COIN_TO_TON_RATE,
-  MAXIMUM_COIN_WITHDRAWAL,
-  MINIMUM_COIN_WITHDRAWAL,
-} from "../config/game";
+// import {
+//   COIN_TO_TON_RATE,
+//   MAXIMUM_COIN_WITHDRAWAL,
+//   MINIMUM_COIN_WITHDRAWAL,
+// } from "../config/game";
 import { sendTonTransaction } from "../services/tonService";
 import { bot } from "../bot";
 import { getRealIp } from "../lib/ip";
+import { getSettings } from "../config/settings";
 
 const router = express.Router();
 router.use(authenticate);
 
 router.get("/data", async (req: Request, res: Response) => {
   try {
+    const settings = await getSettings();
+    const COIN_TO_TON_RATE = settings.COIN_TO_TON_RATE;
+    const MINIMUM_COIN_WITHDRAWAL = settings.MINIMUM_COIN_WITHDRAWAL;
+    const MAXIMUM_COIN_WITHDRAWAL = settings.MAXIMUM_COIN_WITHDRAWAL;
+
     const withdrawalData = {
       rate: COIN_TO_TON_RATE,
       min: MINIMUM_COIN_WITHDRAWAL,
@@ -82,6 +88,11 @@ router.post("/", async (req: Request, res: Response) => {
         success: false,
         message: "Missing targetAddress or amountCoins",
       });
+
+    const settings = await getSettings();
+    const COIN_TO_TON_RATE = settings.COIN_TO_TON_RATE;
+    const MINIMUM_COIN_WITHDRAWAL = settings.MINIMUM_COIN_WITHDRAWAL;
+    const MAXIMUM_COIN_WITHDRAWAL = settings.MAXIMUM_COIN_WITHDRAWAL;
 
     if (amountCoins < MINIMUM_COIN_WITHDRAWAL)
       return res.status(400).json({

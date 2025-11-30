@@ -90,3 +90,33 @@ model Action {
   data          String
 }
 
+model Admin {
+  id       Int    @id @default(autoincrement())
+  username String @unique
+  password String
+  createdAt DateTime @default(now())
+}
+
+model Settings {
+  id                        Int      @id @default(1)
+
+  referralRewards           Json     // REFERRAL_REWARDS
+  spinWheelCooldownHours    Float
+  spinWheelProbabilities    Json     // SPIN_WHEEL_PROBABILITY_DATA
+
+  energyPrice               Int
+  healthPrice               Int
+
+  upgradables               Json     // UPGRADABLES
+  upgradeCosts              Json     // UPGRADE_COSTS
+
+  upgradablesMaxLevel       Int
+
+  coinToTonRate             Int
+  minimumCoinWithdrawal     Int
+  maximumCoinWithdrawal     Int
+
+  channels                  Json     // CHANNELS array
+  rewardForSubscription     Int
+}
+
