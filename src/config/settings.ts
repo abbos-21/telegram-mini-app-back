@@ -1,6 +1,6 @@
-import prisma from "../prisma";
+// src/lib/settings.ts  (or wherever you keep it)
 
-let cachedSettings: Awaited<ReturnType<typeof loadSettings>> | null = null;
+import prisma from "../prisma";
 
 async function loadSettings() {
   const s = await prisma.settings.findUnique({
@@ -36,12 +36,15 @@ async function loadSettings() {
   };
 }
 
+/**
+ * Always returns fresh settings from the database
+ */
 export async function getSettings() {
-  if (!cachedSettings) {
-    cachedSettings = await loadSettings();
-  }
-  return cachedSettings;
+  return await loadSettings();
 }
 
-// Individual named exports (like before)
+/**
+ * Preload at server start (optional but keeps the old behavior of settingsPromise)
+ * Useful if you import { settingsPromise } somewhere and await it on cold start
+ */
 export const settingsPromise = getSettings();
