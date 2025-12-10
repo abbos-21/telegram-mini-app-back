@@ -91,6 +91,7 @@ router.post("/subscribe", async (req: Request, res: Response) => {
     const REWARD_FOR_SUBSCRIPTION = settings.REWARD_FOR_SUBSCRIPTION;
 
     const userSubscriptionsArray = JSON.parse(user.subscriptions);
+    if (userSubscriptionsArray.includes(channelUsername)) return;
     userSubscriptionsArray.push(`@${channelUsername}`);
 
     await prisma.user.update({
