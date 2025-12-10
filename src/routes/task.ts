@@ -80,6 +80,8 @@ router.post("/subscribe", async (req: Request, res: Response) => {
         .json({ success: false, message: "Channel not specified" });
     }
 
+    if (channelUsername !== "CryptoTraceHQ") return;
+
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
 
     if (!user)
